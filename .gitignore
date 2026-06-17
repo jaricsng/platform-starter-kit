@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# Node
+node_modules/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+*.tfvars
+!*.tfvars.example
+
+# .NET
+bin/
+obj/
+
+# Secrets / env
+.env
+*.local.json
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Load/security test artifacts
+security/reports/
+load-testing/k6/results.json

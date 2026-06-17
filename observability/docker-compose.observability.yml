@@ -1,0 +1,70 @@
+# Standalone observability stack — Jaeger (traces) + Prometheus (metrics) +
+# Grafana (dashboards), wired to scrape an OTel-instrumented HTTP service.
+#
+# Usage: layer this on top of your own app's compose file so both share a
+# network and Prometheus can resolve your service by name:
+#
+#   docker compose -f docker-compose.yml \
+#                   -f observability/docker-compose.observability.yml \
+#                   --profile observability up
+#
+# Your app's compose service MUST be named "app" (or edit prometheus.yml's
+# `targets: ["app:8000"]` to match your service name), and must be on the
+# same Compose network as these services (default Compose networking puts
+# all services in one project on one network automatically).
+#
+#   Jaeger UI:   http://localhost:16686
+#   Prometheus:  http://localhost:9090
+#   Grafana:     http://localhost:3000  (admin / admin)
+
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    profiles: [observability]
+    ports:
+      - "16686:16686"   # Jaeger UI
+      - "4317:4317"     # OTLP gRPC (traces from your app)
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:latest
+    profiles: [observability]
+    ports:
+      - "9115:9115"
+    volumes:
+      - ./observability/blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+
+  prometheus:
+    image: prom/prometheus:latest
+    profiles: [observability]
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/recording_rules.yml:/etc/prometheus/recording_rules.yml:ro
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    depends_on:
+      - blackbox-exporter
+
+  grafana:
+    image: grafana/grafana:latest
+    profiles: [observability]
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - jaeger
+
+volumes:
+  grafana_data:

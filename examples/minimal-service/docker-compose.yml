@@ -1,0 +1,14 @@
+# Minimal service, meant to be layered with the observability overlay from
+# the repo root so Prometheus/Jaeger can resolve this service as "app".
+#
+# Run from the REPO ROOT (not this directory) — see README.md in this folder
+# for why `--project-directory .` matters here.
+services:
+  app:
+    build:
+      context: ./examples/minimal-service
+    ports:
+      - "8000:8000"
+    environment:
+      OTLP_ENDPOINT: http://jaeger:4317
+      OTEL_ENABLED: "true"
