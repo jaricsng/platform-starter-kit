@@ -29,7 +29,7 @@ of running it from here, you won't need this flag — see
 ```bash
 curl http://localhost:8000/health   # {"status": "ok"}
 curl http://localhost:8000/ready    # {"status": "ready"}
-curl http://localhost:8000/metrics  # Prometheus text format
+curl -L http://localhost:8000/metrics  # Prometheus text format (mounted sub-app redirects to a trailing slash)
 ```
 
 - **Jaeger** (http://localhost:16686) — select service `app`, you should see

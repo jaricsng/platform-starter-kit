@@ -1,9 +1,12 @@
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
-  # Rule files are evaluated at this interval
-  rule_files:
-    - /etc/prometheus/recording_rules.yml
+
+# Rule files are evaluated at evaluation_interval — must be top-level, not
+# nested under `global:` (a nested rule_files is silently rejected by
+# Prometheus's strict config schema).
+rule_files:
+  - /etc/prometheus/recording_rules.yml
 
 scrape_configs:
   # TODO: rename "app" if you want a more specific job name, and update the

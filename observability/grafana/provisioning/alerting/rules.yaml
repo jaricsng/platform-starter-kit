@@ -1,52 +1,114 @@
+# Grafana's native alert-rule file-provisioning schema — NOT the same as
+# Prometheus/Mimir ruler YAML (alert/expr/for/labels/annotations). Each rule
+# needs a uid, title, condition, and a `data` block naming the datasource.
+# See: https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/file-provisioning/
+#
+# Pattern used below: each PromQL expression is filter-style (it only
+# returns a series when the threshold is breached), so a single query
+# (refId A) is both the data and the condition — no data means "not
+# breached", hence noDataState: OK rather than the default NoData/Alerting.
 apiVersion: 1
 groups:
   - name: app-alerts
+    folder: "Starter Kit"
     interval: 1m
     rules:
       # Metric source: OTel semantic conventions (pre-1.23 naming)
       # http.server.duration → http_server_duration_milliseconds histogram
       # Labels: http_method, http_status_code, http_flavor, http_scheme
 
-      - alert: HighErrorRate
-        expr: |
-          sum(rate(http_server_duration_milliseconds_count{http_status_code=~"5.."}[5m]))
-          /
-          sum(rate(http_server_duration_milliseconds_count[5m])) > 0.05
+      - uid: high-error-rate
+        title: HighErrorRate
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: |
+                sum(rate(http_server_duration_milliseconds_count{http_status_code=~"5.."}[5m]))
+                /
+                sum(rate(http_server_duration_milliseconds_count[5m])) > 0.05
         for: 5m
+        noDataState: OK
+        execErrState: Alerting
         labels:
           severity: critical
         annotations:
           summary: "High 5xx error rate"
-          description: "Error rate is {{ humanizePercentage $value }} over the last 5 minutes."
+          description: "Error rate is {{ humanizePercentage $values.A.Value }} over the last 5 minutes."
 
-      - alert: HighLatency
-        expr: |
-          histogram_quantile(0.95,
-            sum(rate(http_server_duration_milliseconds_bucket[5m])) by (le)
-          ) > 500
+      - uid: high-latency
+        title: HighLatency
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: |
+                histogram_quantile(0.95,
+                  sum(rate(http_server_duration_milliseconds_bucket[5m])) by (le)
+                ) > 500
         for: 5m
+        noDataState: OK
+        execErrState: Alerting
         labels:
           severity: warning
         annotations:
           summary: "P95 latency above 500 ms"
-          description: "P95 latency is {{ $value | humanize }} ms (SLO: 500 ms)."
+          description: "P95 latency is {{ $values.A.Value | humanize }} ms (SLO: 500 ms)."
 
-      - alert: DatabaseUnreachable
-        expr: |
-          probe_success{job="readiness"} == 0
+      - uid: dependency-unreachable
+        title: DependencyUnreachable
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: |
+                probe_success{job="readiness"} == 0
         for: 1m
+        noDataState: OK
+        execErrState: Alerting
         labels:
           severity: critical
         annotations:
           summary: "Readiness probe failing"
           description: "The /ready endpoint has been returning non-200 for more than 1 minute."
 
-      - alert: HighRejectionRate
-        expr: |
-          sum(rate(http_server_duration_milliseconds_count{http_status_code="429"}[1m])) > 50
+      - uid: high-rejection-rate
+        title: HighRejectionRate
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: |
+                sum(rate(http_server_duration_milliseconds_count{http_status_code="429"}[1m])) > 50
         for: 0m
+        noDataState: OK
+        execErrState: Alerting
         labels:
           severity: warning
         annotations:
           summary: "High rate of rejected requests (429)"
-          description: "{{ $value | humanize }} requests/s are being rejected — possible brute-force or abuse."
+          description: "{{ $values.A.Value | humanize }} requests/s are being rejected — possible brute-force or abuse."

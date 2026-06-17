@@ -65,7 +65,7 @@ jobs:
       - name: Verify /ready and /metrics
         run: |
           curl -sf http://localhost:8000/ready
-          curl -sf http://localhost:8000/metrics | head -5
+          curl -sfL http://localhost:8000/metrics | head -5
       - name: Verify Prometheus targets are up
         run: |
           sleep 20  # let Prometheus complete at least one scrape
