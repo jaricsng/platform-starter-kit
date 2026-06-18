@@ -102,6 +102,11 @@ resource "google_cloud_run_v2_service" "api" {
   location = var.region
   labels   = local.labels
 
+  # google provider v6+ defaults this to true for every environment, which
+  # blocks `terraform destroy`/replace on staging unless overridden — mirror
+  # the same staging/production split already used for the SQL instance.
+  deletion_protection = var.environment == "production" ? true : false
+
   template {
     service_account = google_service_account.api.email
 

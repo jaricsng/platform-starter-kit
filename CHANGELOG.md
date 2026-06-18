@@ -11,6 +11,16 @@ change.
 
 ## [Unreleased]
 
+### Fixed
+
+- `iac-terraform/gcp-cloud-run`: `google_cloud_run_v2_service` now sets
+  `deletion_protection` explicitly (`false` for staging, `true` for
+  production), matching the existing `google_sql_database_instance` pattern.
+  Needed before bumping `hashicorp/google` past v6, which defaults this
+  field to `true` for every environment — without the override, `terraform
+  destroy`/replace on a staging Cloud Run service would fail until someone
+  discovered and manually unprotected it.
+
 ## [2.1.3] - 2026-06-18
 
 Multi-developer / team support. Patch per the kit's versioning policy — no
