@@ -100,7 +100,7 @@ flowchart LR
 | `tools/` | `scaffold.py` — generates a new repo from this kit with app-name placeholders pre-resolved and a `catalog-info.yaml` already in place; `doctor.py` — automates `docs/ARCHITECTURE-FIT.md`'s pre-adoption readiness checklist; `sync_check.py` — reports what's changed upstream since you scaffolded; `check_migrations.py` — flags backward-incompatible schema changes |
 | `dev-experience/` | The paved inner loop: a `Makefile` task interface (`make test`/`run`/`lint`/`doctor`/`obs-up`), a `.devcontainer`, `.tool-versions`, and `.env.example` — copied to repo root so local and CI run the same commands |
 | `claude-commands/` | 19 Claude Code slash commands — coding standards, security review, compliance, performance/pen testing, cloud config review |
-| `dotnet/` | .NET Aspire `ServiceDefaults` (OTel/health-check wiring) + an `AppHost` template for orchestrating multi-service apps |
+| `dotnet/` | .NET Aspire — `ServiceDefaults` (OTel/health-check wiring) + an `AppHost` template for **local** multi-service orchestration. Deployment stays multi-cloud via `ci-cd/` (Azure Container Apps is the Aspire `azd` path; AWS ECS and GCP Cloud Run also supported) |
 | `ci-cd/` | GitHub Actions CI/CD pipeline shape (lint → test → security → build → Trivy gate → SBOM → SLSA provenance → staged deploy with post-deploy health-check + auto-rollback), a scheduled infra `drift-detection.yml`, and a pre-commit baseline that shifts secrets/SAST/lint **and** Terraform (fmt/validate/tfsec) + migration checks left of check-in |
 | `observability/` | Jaeger + Prometheus + Grafana, provisioned and pre-wired as a Docker Compose overlay |
 | `load-testing/` | k6 (smoke/load/spike) and Locust scenarios with worked-example patterns (token pools, staged ramps, weighted user mixes) |
@@ -132,6 +132,13 @@ Tagged with semver:
 - **patch** — documentation or template fixes with no structural change
 
 See [`CHANGELOG.md`](CHANGELOG.md) for release history.
+
+## Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for how to propose assets/fixes and
+validate them, [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) for community
+expectations, and [`SECURITY.md`](SECURITY.md) for reporting vulnerabilities
+privately.
 
 ## License
 

@@ -138,7 +138,7 @@ def check_secrets_hygiene(root: Path):
 
 def check_kubernetes(root: Path):
     if (root / "Chart.yaml").exists() or list(root.rglob("Chart.yaml")):
-        return WARN, "Helm Chart.yaml found — this kit's deploy jobs/Terraform target serverless-container platforms (Cloud Run/ECS/ACA/Fly.io), not Kubernetes. See ARCHITECTURE-FIT.md's Kubernetes row before adopting ci-cd/github-actions/publish.yml or iac-terraform/"
+        return WARN, "Helm Chart.yaml found — this kit's deploy jobs/Terraform target serverless-container platforms (Azure Container Apps/ECS/Cloud Run), not Kubernetes. See ARCHITECTURE-FIT.md's Kubernetes row before adopting ci-cd/github-actions/publish.yml or iac-terraform/"
     k8s_dirs = [d for d in (root / "k8s", root / "kubernetes") if d.is_dir()]
     if k8s_dirs:
         return WARN, f"{k8s_dirs[0].relative_to(root)}/ found — same Kubernetes caveat as above"

@@ -13,7 +13,7 @@ project ID, ...).
 
 Usage:
     python3 tools/scaffold.py --app-name my-service --output ../my-service \\
-        [--cloud none|fly|azure|aws|gcp] \\
+        [--cloud none|azure|aws|gcp] \\
         [--no-observability] [--no-security] [--no-load-testing] [--no-claude-commands] \\
         [--telemetry] [--force]
 
@@ -273,6 +273,7 @@ only you have).
 ## Next steps
 
 1. Add your actual application code (this scaffold doesn't include one).
+   (This directory was already `git init`-ed for you.)
 2. `cp .env.example .env` and fill in local values, then `make setup`.
 3. Fill in the `TODO` commands in the `Makefile` (`setup`/`test`/`lint`/`fmt`).
 4. Work through `TODO.md`.
@@ -288,10 +289,8 @@ TODO_ROWS = [
      "| `.github/workflows/ci.yml` | `working-directory: backend` / `frontend` | Your repo's actual source directories |"),
     (lambda a: True,
      "| `.github/workflows/ci.yml` | `services: postgres:` block | Your actual database engine, if not Postgres — see `docs/TECH-STACK-SWAP-GUIDE.md` |"),
-    (lambda a: a.cloud in ("fly", "none"),
-     "| `.github/workflows/publish.yml` | Fly.io deploy jobs' `if: false` | Remove once `FLY_API_TOKEN` + GitHub Environments are configured |"),
     (lambda a: a.cloud in ("azure", "none"),
-     "| `.github/workflows/publish.yml` | Azure deploy job's `if: false` | Remove once `azd pipeline config` has been run |"),
+     "| `.github/workflows/publish.yml` | Azure deploy job's `if: false` (the .NET Aspire deploy path) | Remove once `azd pipeline config` has been run |"),
     (lambda a: a.cloud in ("aws", "none"),
      "| `.github/workflows/publish.yml` | AWS deploy job's `if: false`, `deploy/aws-deploy.sh` | Remove once AWS OIDC role + secrets are configured; provide your own deploy script |"),
     (lambda a: a.cloud in ("gcp", "none"),
@@ -366,11 +365,29 @@ def record_telemetry(args, sha: str):
         print(f"Telemetry: could not write {TELEMETRY_LOCAL_PATH} ({exc})")
 
 
+def git_init(output: Path):
+    """Best-effort `git init` so the generated repo is immediately git-ready:
+    the .gitignore takes effect, the .secrets.baseline has a repo to protect,
+    and the documented `make setup` (which runs `pre-commit install`) works
+    instead of failing with "not a git repository". Never fails scaffolding;
+    if the dir is already a git repo, git init is idempotent."""
+    try:
+        if (output / ".git").exists():
+            return
+        subprocess.run(
+            ["git", "init", "-q"], cwd=output,
+            capture_output=True, text=True, timeout=15, check=True,
+        )
+        print("Initialized a git repository (git init)")
+    except (OSError, subprocess.SubprocessError):
+        print("Note: `git init` skipped (git unavailable) — run it yourself so `make setup` / pre-commit work")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--app-name", required=True, help="e.g. my-service (case/spacing normalized automatically)")
     parser.add_argument("--output", required=True, type=Path, help="path to the new repo directory (created if missing)")
-    parser.add_argument("--cloud", choices=["none", "fly", "azure", "aws", "gcp"], default="none")
+    parser.add_argument("--cloud", choices=["none", "azure", "aws", "gcp"], default="none")
     parser.add_argument("--no-observability", action="store_true")
     parser.add_argument("--no-security", action="store_true")
     parser.add_argument("--no-load-testing", action="store_true")
@@ -432,6 +449,7 @@ def main():
     write_dependabot(output, args)
     write_readme(output, variants, args)
     write_todo(output, args)
+    git_init(output)
 
     if args.telemetry:
         record_telemetry(args, sha)

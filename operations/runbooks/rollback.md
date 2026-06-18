@@ -29,11 +29,10 @@ Rollback is therefore "re-deploy the previous SHA" — no rebuild needed.
 These mirror the deploy jobs in `publish.yml`. Replace placeholders with
 your real names.
 
-**Fly.io**
+**Azure Container Apps** (the .NET Aspire deploy path, `azd`)
 ```bash
-fly releases --app TODO-your-app-production         # list releases
-fly deploy --app TODO-your-app-production --image registry.fly.io/TODO-your-app-production:sha-<good>
-# or: fly releases rollback <version> --app TODO-your-app-production
+az containerapp revision list -n <app> -g <rg> -o table
+az containerapp ingress traffic set -n <app> -g <rg> --revision-weight <good-revision>=100
 ```
 
 **GCP Cloud Run** (matches `iac-terraform/gcp-cloud-run`)
@@ -47,12 +46,6 @@ gcloud run services update-traffic <service> --to-revisions=<good-revision>=100 
 ```bash
 aws ecs update-service --cluster <cluster> --service <svc> \
   --task-definition <family>:<good-revision> --force-new-deployment
-```
-
-**Azure Container Apps**
-```bash
-az containerapp revision list -n <app> -g <rg> -o table
-az containerapp ingress traffic set -n <app> -g <rg> --revision-weight <good-revision>=100
 ```
 
 ## After rolling back

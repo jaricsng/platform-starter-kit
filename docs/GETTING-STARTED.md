@@ -149,19 +149,24 @@ python3 tools/doctor.py .   # confirms what's still missing — see ARCHITECTURE
 ```
 
 It writes its own `TODO.md` in the new repo with only the placeholders it
-genuinely couldn't resolve (credentials, project IDs). Steps 2 onward below
-describe what `scaffold.py` does for you, if you'd rather do it by hand or
-need to understand what changed.
+genuinely couldn't resolve (credentials, project IDs), and runs `git init`
+for you so the `.gitignore`, secrets baseline, and `make setup`/pre-commit
+all work immediately. Steps 2 onward below describe what `scaffold.py` does
+for you, if you'd rather do it by hand or need to understand what changed.
+(Adopting by hand instead? `git init` your repo before `make setup`, since
+`pre-commit install` needs a git repo.)
 
 ## 2. Day 1 — code-quality baseline
 
 - `scaffold.py` also drops a `Makefile`, `.devcontainer/`, `.tool-versions`,
   and `.env.example` (from `dev-experience/`) at your repo root. Run
-  `make help` to see the task interface — `make doctor`, `make migrations`,
-  `make obs-up`, and `make sync` work immediately; fill in the `setup`/
-  `test`/`lint`/`fmt` targets with your stack's commands once, and every
-  developer and CI job inherits them. `cp .env.example .env` and fill in
-  local values.
+  `make help` to see the task interface. `make doctor` and `make migrations`
+  work immediately; `make obs-up` needs your app's `docker-compose.yml`
+  first (the observability overlay layers on top of it), and `make sync`
+  needs `KIT_PATH` pointed at your kit checkout (`make sync
+  KIT_PATH=../platform-starter-kit`). Fill in the `setup`/`test`/`lint`/`fmt`
+  targets with your stack's commands once, and every developer and CI job
+  inherits them. `cp .env.example .env` and fill in local values.
 - `scaffold.py` also drops a `.gitignore` (so the `.env` you just created
   can't be committed) and a `.secrets.baseline` (so the `detect-secrets`
   pre-commit hook works on your first commit instead of erroring). If you
@@ -214,12 +219,20 @@ docker compose -f <your-compose>.yml \
   you're ready to route the SLO-burn alerts somewhere. Define your actual
   targets in [`operations/SLOs.md`](../operations/SLOs.md).
 
-## 5. If using .NET / Aspire
+## 5. .NET Aspire — local multi-service orchestration
+
+`dotnet/` is the kit's local orchestration story: the Aspire AppHost wires
+your services (and their dependencies) together for `dotnet run` locally,
+with OTel/health-check defaults baked in. Deployment stays multi-cloud
+(step 3) — Azure Container Apps is Aspire's native `azd` path, and AWS ECS
+/ GCP Cloud Run are also supported.
 
 - Add `dotnet/ServiceDefaults` as a project reference; call
   `builder.AddServiceDefaults()` and `app.MapDefaultEndpoints()`.
 - Copy `dotnet/apphost-template`, fill in your actual services in `Program.cs`,
   and generate your own `UserSecretsId` (see the TODO comment in `AppHost.csproj`).
+- To deploy, activate the `deploy-azure` job in `publish.yml` (`azd provision`
+  / `azd deploy`), or one of the other cloud jobs.
 
 ## 6. Week 1–2 — load testing
 

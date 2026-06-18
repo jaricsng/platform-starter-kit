@@ -111,7 +111,7 @@ pre-commit validate-config ci-cd/pre-commit/.pre-commit-config.yaml
 python3 tools/doctor.py examples/minimal-service   # should report only the known test gap
 rm -rf /tmp/scaffold-smoke
 python3 tools/scaffold.py --app-name smoke-test --output /tmp/scaffold-smoke --cloud gcp
-python3 /tmp/scaffold-smoke/tools/doctor.py /tmp/scaffold-smoke   # 3 expected FAILs (no Dockerfile/tests/OTel yet) + WARN (catalog owner); the Gitignore/secrets-baseline check should PASS (scaffold emits both)
+python3 /tmp/scaffold-smoke/tools/doctor.py /tmp/scaffold-smoke   # 3 expected FAILs (no Dockerfile / health endpoints / tests yet) + WARNs (OTel, catalog owner); the Gitignore/secrets-baseline check should PASS (scaffold emits both)
 python3 tools/sync_check.py /tmp/scaffold-smoke --kit-path . --show-diffs   # sanity-check the diff output is readable
 test -f /tmp/scaffold-smoke/.gitignore && test -f /tmp/scaffold-smoke/.secrets.baseline && echo "scaffold security defaults present"
 rm -rf /tmp/scaffold-smoke

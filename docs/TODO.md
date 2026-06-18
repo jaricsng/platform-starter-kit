@@ -16,7 +16,7 @@ of them.
 | `ci-cd/github-actions/drift-detection.yml` | `if: false`, cloud auth, `working-directory` | Remove `if: false` and configure WIF + remote state to enable scheduled drift detection |
 | `.secrets.baseline` | Generated empty by `scaffold.py` / `make setup` | Re-run `detect-secrets scan > .secrets.baseline` after adding code; audit findings with `detect-secrets audit .secrets.baseline` |
 | `ci-cd/github-actions/ci.yml` | `services: postgres:` block (image + connection env vars) | Your actual database engine, if not Postgres — see `docs/TECH-STACK-SWAP-GUIDE.md`'s database-swap row |
-| `ci-cd/github-actions/publish.yml` | `TODO-your-app-staging`, `TODO-your-app-production` (Fly.io) | Your actual Fly.io app names |
+| `ci-cd/github-actions/publish.yml` | `deploy-azure`/`deploy-aws`/`deploy-gcp` `if: false` + per-job TODOs | Activate one target (Azure is the .NET Aspire `azd` path); fill its names/region/secrets |
 | `ci-cd/github-actions/publish.yml` | `deploy/aws-deploy.sh`, `deploy/gcp-deploy.sh` | Your own deploy scripts, or remove the job if not targeting that cloud |
 | `ci-cd/github-actions/publish.yml` | Every cloud deploy job's `if: false` | Remove once the matching GitHub Environment + secrets (below) are configured |
 | `observability/prometheus.yml` | `job_name: app`, `targets: ["app:8000"]` | Your Compose service's actual name, if not `app` |
@@ -37,8 +37,7 @@ of them.
 
 | Secret | Used by | Required for |
 |---|---|---|
-| `FLY_API_TOKEN` | `publish.yml` | Fly.io deploy jobs |
-| `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` | `publish.yml` | Azure Container Apps deploy job (OIDC) |
+| `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` | `publish.yml` | Azure Container Apps deploy job — the .NET Aspire `azd` path (OIDC) |
 | `AWS_DEPLOY_ROLE_ARN` | `publish.yml` | AWS ECS Fargate deploy job (OIDC) |
 | `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_SERVICE_ACCOUNT` | `publish.yml` | GCP Cloud Run deploy job (Workload Identity Federation) |
 | `SLACK_WEBHOOK_URL` | `publish.yml` | Failure notifications (optional on all targets) |

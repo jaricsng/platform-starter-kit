@@ -3,13 +3,16 @@ name: Publish & Deploy
 # Runs on every merge to main.
 #
 # This is a SHAPE to adopt: build → Trivy hard-gate → SBOM → SLSA provenance →
-# semantic-version tag → staged deploy (staging → production with manual
-# approval) → Slack failure notification. Replace the placeholders below
-# (app names, registry paths, cloud provider) with your own.
+# semantic-version tag → deploy → Slack failure notification. Replace the
+# placeholders below (app names, registry paths, cloud provider) with your own.
 #
-# All four cloud deploy jobs (Fly.io, Azure, AWS, GCP) are gated `if: false`
-# by default — pick ONE (or none), fill in its TODOs, and remove that job's
-# `if: false` line. Delete the jobs you don't need.
+# Three cloud deploy jobs (Azure Container Apps, AWS ECS, GCP Cloud Run) are
+# gated `if: false` by default — pick ONE (or none), fill in its TODOs, and
+# remove that job's `if: false` line. Delete the jobs you don't need. Each
+# gates production via a GitHub Environment with required reviewers (see each
+# job's `environment:`), and the Azure job is the .NET Aspire deploy path
+# (`azd provision`/`azd deploy`). Local multi-service orchestration is handled
+# by Aspire's AppHost (see `dotnet/`), not this file.
 
 on:
   push:
@@ -272,113 +275,6 @@ jobs:
             --draft=false \
             --prerelease=false
 
-  # ─── Deploy: Fly.io staging → production promotion ──────────────────────────
-  #
-  # Same-artifact principle: the :sha-<commit> image built above is deployed to
-  # staging first (automatic) and then promoted to production (manual approval).
-  # Never rebuilt between environments.
-  #
-  # To activate:
-  #   1. Create GitHub Environments: staging (no reviewers) + production (reviewers)
-  #   2. Add FLY_API_TOKEN to each environment's secrets
-  #   3. Replace TODO placeholders below with your Fly.io app names
-  #   4. Remove the `if: false` line from both jobs
-
-  deploy-fly-staging:
-    name: Deploy to Fly.io staging
-    needs: [publish-api]
-    runs-on: ubuntu-latest
-    environment: staging   # no required reviewers — auto-deploys when publish-api passes
-    if: false   # Enable: remove this line once FLY_API_TOKEN + app names are configured
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install flyctl
-        uses: superfly/flyctl-actions/setup-flyctl@master
-
-      - name: Deploy API to staging
-        run: |
-          flyctl deploy \
-            --app TODO-your-app-staging \
-            --image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/api:${{ env.IMAGE_TAG }}
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-
-      - name: Staging health check
-        run: |
-          STAGING_URL="https://TODO-your-app-staging.fly.dev"
-          for i in $(seq 1 12); do
-            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" "$STAGING_URL/health")
-            echo "Attempt $i: HTTP $STATUS"
-            [ "$STATUS" = "200" ] && echo "✅ Staging healthy" && exit 0
-            sleep 10
-          done
-          echo "❌ Staging health check failed — blocking production promotion"
-          exit 1
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-
-      - name: Smoke test against staging
-        run: |
-          docker run --rm grafana/k6 run \
-            -e BASE_URL=https://TODO-your-app-staging.fly.dev \
-            - < load-testing/k6/smoke.js
-
-  deploy-fly-production:
-    name: Promote to Fly.io production
-    needs: [deploy-fly-staging]   # only runs if staging deploy + smoke test succeeded
-    runs-on: ubuntu-latest
-    environment: production   # requires a named reviewer to approve
-    if: false   # Enable after deploy-fly-staging is configured and verified
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install flyctl
-        uses: superfly/flyctl-actions/setup-flyctl@master
-
-      - name: Verify supply chain (cosign)
-        # Confirms this image was built by THIS repo's GitHub Actions workflow,
-        # not a tampered image pushed outside of CI.
-        run: |
-          cosign verify \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/api:${{ env.IMAGE_TAG }} \
-            --certificate-identity-regexp \
-              "https://github.com/${{ github.repository }}/.*" \
-            --certificate-oidc-issuer \
-              "https://token.actions.githubusercontent.com"
-        continue-on-error: true   # non-blocking until team baseline is established
-
-      - name: Deploy same image to production
-        run: |
-          flyctl deploy \
-            --app TODO-your-app-production \
-            --image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/api:${{ env.IMAGE_TAG }}
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-
-      - name: Production health check
-        run: |
-          for i in $(seq 1 12); do
-            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" \
-              "https://TODO-your-app-production.fly.dev/health")
-            echo "Attempt $i: HTTP $STATUS"
-            [ "$STATUS" = "200" ] && echo "✅ Production healthy" && exit 0
-            sleep 10
-          done
-          echo "❌ Production health check failed — rolling back"
-          flyctl releases rollback --app TODO-your-app-production
-          exit 1
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-
-      - name: Production smoke test
-        run: |
-          docker run --rm grafana/k6 run \
-            -e BASE_URL=https://TODO-your-app-production.fly.dev \
-            - < load-testing/k6/smoke.js
-
   # ─── Deploy: Azure Container Apps ────────────────────────────────────────────
   #
   # To activate:
@@ -587,8 +483,7 @@ jobs:
         run: bash deploy/gcp-deploy.sh
 
       - name: Health check + auto-rollback on failure
-        # Mirrors deploy-fly-production. Rollback command per
-        # operations/runbooks/rollback.md's GCP section.
+        # Rollback command per operations/runbooks/rollback.md's GCP section.
         run: |
           API_URL=$(gcloud run services describe TODO-your-service-name \
             --region "${{ vars.GCP_REGION }}" --project "${{ vars.GCP_PROJECT_ID }}" \
@@ -626,21 +521,22 @@ jobs:
   # (security/zap-scan.sh full) for active testing against a disposable environment.
   #
   # To activate:
-  #   1. Activate one of the staging deploy jobs above
-  #   2. Update `needs:` and `target:` below to match
+  #   1. Activate a deploy job above (Azure/AWS/GCP)
+  #   2. Update `needs:` and `target:` below to match that job + its URL
   #   3. Remove the `if: false` line below
 
   zap-baseline-scan:
     name: ZAP baseline scan (staging)
-    needs: deploy-fly-staging
+    needs: deploy-azure   # repoint to whichever deploy job you activate
     runs-on: ubuntu-latest
-    if: false   # Enable after activating a staging deploy job
+    if: false   # Enable after activating a deploy job
 
     steps:
       - name: ZAP baseline scan
         uses: zaproxy/action-baseline@v0.12.0
         with:
-          target: 'https://TODO-your-app-staging.fly.dev'
+          # TODO: point at your deployed staging URL (e.g. vars.STAGING_URL)
+          target: 'https://TODO-your-staging-url.example.com'
           fail_action: true
           cmd_options: '-I'   # informational-only mode — remove to hard-gate on MEDIUM+
           issue_title: 'ZAP Baseline Scan — Staging'

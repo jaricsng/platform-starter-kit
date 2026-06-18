@@ -60,11 +60,15 @@ policy: ## Run policy-as-code against a Terraform plan (needs conftest + a plan.
 		echo "then: conftest test --policy governance/policy-as-code/policy plan.json"; \
 	else echo "No governance/policy-as-code — skipping."; fi
 
-obs-up: ## Start the observability stack (Jaeger + Prometheus + Grafana + Alertmanager)
+obs-up: ## Start observability (layers on YOUR app's docker-compose.yml — add that first)
+	@[ -f docker-compose.yml ] || { echo "No docker-compose.yml here. The observability stack layers on top of your app's compose file — add a docker-compose.yml for your service first (see observability/docker-compose.observability.yml's usage comment)."; exit 1; }
+	@[ -d observability ] || { echo "No observability/ here — scaffold with observability enabled, or copy the folder in."; exit 1; }
 	$(COMPOSE) -f docker-compose.yml -f observability/docker-compose.observability.yml --profile observability up -d
 
 obs-down: ## Stop the observability stack
+	@[ -f docker-compose.yml ] && [ -d observability ] || { echo "Nothing to stop — no docker-compose.yml + observability/ here."; exit 0; }
 	$(COMPOSE) -f docker-compose.yml -f observability/docker-compose.observability.yml --profile observability down -v
 
-sync: ## Report what's changed upstream in the kit since you scaffolded
+sync: ## Report upstream kit changes since you scaffolded (set KIT_PATH=path/to/kit)
+	@[ -d "$(KIT_PATH)/tools" ] || { echo "Kit not found at KIT_PATH=$(KIT_PATH). Point it at your platform-starter-kit checkout: make sync KIT_PATH=/path/to/platform-starter-kit"; exit 1; }
 	@python3 tools/sync_check.py . --kit-path $(KIT_PATH) --show-diffs

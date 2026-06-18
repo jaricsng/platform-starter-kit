@@ -11,6 +11,57 @@ change.
 
 ## [Unreleased]
 
+## [2.1.2] - 2026-06-18
+
+Public-release readiness: removed Fly.io (keeping Azure/AWS/GCP + .NET Aspire
+for local orchestration), corrected end-to-end adoption instructions to match
+reality, and added the community-health files. Patch per the kit's versioning
+policy — no capability folder was added, moved, or removed.
+
+### Added
+
+- `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1) —
+  community-health files for public release; README now links them alongside
+  `SECURITY.md`. Confirmed during a release-readiness audit (LICENSE present
+  and MIT, no real secrets in the tree — every detect-secrets hit is an
+  intentional placeholder, no broken links across 45 markdown files, no
+  tracked build cruft).
+
+### Fixed
+
+- End-to-end adoption-instruction accuracy pass (walked the documented path
+  and corrected what didn't actually work):
+  - `tools/scaffold.py` now runs `git init` on the generated repo, so the
+    documented next step `make setup` (which runs `pre-commit install`) and
+    the `.gitignore`/`.secrets.baseline` all work immediately instead of
+    failing with "not a git repository".
+  - `dev-experience/Makefile`'s `obs-up`/`obs-down` no longer fail with a
+    cryptic Docker error in a fresh repo — they print an actionable hint
+    ("add your app's `docker-compose.yml`; the overlay layers on top"), and
+    `sync` prints a `KIT_PATH=` hint instead of a confusing path error.
+  - Docs that claimed `make obs-up`/`make sync` "work immediately" now
+    accurately state their prerequisites (`docs/GETTING-STARTED.md`,
+    `dev-experience/README.md`).
+  - `CLAUDE.md`'s expected `doctor.py` output corrected (the 3 FAILs are
+    Dockerfile / health endpoints / tests; OTel is a WARN, not a FAIL).
+  - Verified accurate as-is: the `examples/minimal-service` boot + all its
+    documented curls/Jaeger/Prometheus/Grafana claims, the branch-protection
+    `gh api` contexts (match real job names), and the governance/migration
+    fixture commands' documented exit codes.
+
+### Removed
+
+- **Fly.io** as a deploy target, everywhere: the `deploy-fly-staging` /
+  `deploy-fly-production` jobs in `ci-cd/github-actions/publish.yml`, the
+  `fly` choice in `tools/scaffold.py`'s `--cloud`, the `FLY_API_TOKEN`
+  secret + Fly TODO rows, the Fly section of
+  `operations/runbooks/rollback.md`, and Fly mentions across the docs. The
+  kit now keeps three cloud deploy targets — **Azure Container Apps**
+  (the .NET Aspire `azd` path), **AWS ECS**, and **GCP Cloud Run** — and
+  `.NET Aspire`'s AppHost remains the local multi-service orchestrator
+  (`dotnet/`). `publish.yml`'s `zap-baseline-scan` was repointed off the
+  removed Fly staging job to `deploy-azure` with a generic staging-URL TODO.
+
 ## [2.1.1] - 2026-06-18
 
 A "governance / shift-left / stay-right by default" pass: validated the kit
@@ -265,9 +316,8 @@ change (`claude-skills/` → `claude-commands/`).
   `TODO-your-app-staging`), and to `appuser`/`appdb` to match `ci.yml`'s
   existing generic Postgres convention.
 - `claude-commands/check-aspire.md` had two lines with an absolute local
-  filesystem path from the original extraction machine
-  (`/Users/jaricsng/dev/.../task-manager/...`) — replaced with relative
-  paths.
+  filesystem path from the original extraction machine (a `~/.../task-manager/...`
+  home-directory path) — replaced with relative paths.
 - `dotnet/apphost-template/Program.cs` constructed `DATABASE_URL` with a
   bare `postgresql://` scheme — missing the `+asyncpg` prefix that
   `claude-commands/check-aspire.md` section 2c explicitly tells reviewers

@@ -16,12 +16,15 @@ local setup. Everything here is copied to your repo **root** by
 ## The contract
 
 The Makefile is deliberately the only interface anyone needs to learn. The
-targets that wrap **this kit's own tooling** work immediately:
+targets that wrap **this kit's own tooling**:
 
-- `make doctor` → `tools/doctor.py` (readiness check)
-- `make migrations` → `tools/check_migrations.py` (schema-safety gate)
-- `make obs-up` / `make obs-down` → the observability stack
-- `make sync` → `tools/sync_check.py` (upstream drift report)
+- `make doctor` → `tools/doctor.py` (readiness check) — works immediately
+- `make migrations` → `tools/check_migrations.py` (schema-safety gate) — works immediately
+- `make obs-up` / `make obs-down` → the observability stack — needs your
+  app's `docker-compose.yml` first (the overlay layers on top of it; the
+  target prints a hint if it's missing)
+- `make sync` → `tools/sync_check.py` (upstream drift report) — set
+  `KIT_PATH` to your kit checkout: `make sync KIT_PATH=../platform-starter-kit`
 
 The app-specific targets (`setup`, `test`, `lint`, `fmt`) carry a `TODO` —
 fill in your stack's actual command **once**, in the Makefile, and every

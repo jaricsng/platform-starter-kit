@@ -9,7 +9,7 @@ project doesn't match.
 
 ```mermaid
 flowchart LR
-    client(["Client / browser"]) --> lb["Platform-managed LB + TLS\n(Cloud Run / ECS / ACA / Fly.io)"]
+    client(["Client / browser"]) --> lb["Platform-managed LB + TLS\n(Azure Container Apps / ECS / Cloud Run)"]
     lb --> api["API container\nexposes /health /ready /metrics"]
     lb -.-> fe["Frontend container (optional)"]
     api --> db[("Relational DB\nPostgres")]
@@ -34,10 +34,11 @@ flowchart LR
   microservices.
 - **Synchronous REST**, not event-driven. There's no message-broker
   observability, load-test pattern, or CI job anywhere in the kit.
-- **Containers on a managed "serverless container" platform** — Cloud Run,
-  ECS Fargate, Azure Container Apps, or Fly.io. The platform terminates TLS
-  and load-balances for you. There are no Kubernetes manifests, Helm
-  charts, or service-mesh config in this kit.
+- **Containers on a managed "serverless container" platform** — Azure
+  Container Apps, AWS ECS Fargate, or GCP Cloud Run. The platform terminates
+  TLS and load-balances for you. There are no Kubernetes manifests, Helm
+  charts, or service-mesh config in this kit. Local multi-service
+  orchestration uses .NET Aspire's AppHost (see `dotnet/`).
 - **OpenTelemetry SDK in-process**, exporting OTLP to Jaeger locally and to
   an OTLP endpoint in prod (see `examples/minimal-service/telemetry.py`
   and `dotnet/ServiceDefaults/Extensions.cs` — same pattern, two
@@ -88,7 +89,7 @@ run right after generating a new repo).
 | No `/health` or `/ready` endpoint | Every smoke test, E2E gate, and deploy job's post-deploy check polls these and will fail closed | Add both endpoints (see `dotnet/ServiceDefaults/Extensions.cs` or `examples/minimal-service/telemetry.py` for the two reference shapes) before wiring CI |
 | No OpenTelemetry instrumentation | `observability/docker-compose.observability.yml` and the Grafana dashboard will show empty panels — not an error, just silence, which is harder to debug than a failure | Instrument first (or accept the dashboard will be empty until you do — don't spend time debugging "broken" Grafana panels that are actually just unfed) |
 | Secrets currently committed in `.env` / source | `ci-cd/pre-commit/.pre-commit-config.yaml`'s secret-detection hook and `claude-commands/check-secrets.md` will immediately flag your existing history | Rotate every exposed secret and scrub git history (e.g. `git filter-repo`) *before* enabling the pre-commit baseline — otherwise the first commit under the new hook is a wall of pre-existing findings that trains the team to ignore the hook |
-| Already running on Kubernetes | The deploy jobs in `publish.yml` (Fly.io/ACA/ECS/Cloud Run) don't apply; `iac-terraform/gcp-cloud-run` doesn't apply | Take only `ci-cd/pre-commit`, the `security` and `terraform-plan`-minus-Cloud-Run-specifics jobs from `ci.yml`, `observability/`, and `claude-commands/*`; skip `publish.yml` and the Terraform module entirely |
+| Already running on Kubernetes | The deploy jobs in `publish.yml` (ACA/ECS/Cloud Run) don't apply; `iac-terraform/gcp-cloud-run` doesn't apply | Take only `ci-cd/pre-commit`, the `security` and `terraform-plan`-minus-Cloud-Run-specifics jobs from `ci.yml`, `observability/`, and `claude-commands/*`; skip `publish.yml` and the Terraform module entirely |
 | No automated tests at all | `ci.yml`'s `backend`/`frontend` jobs assume `pytest`/`npm test` exist and fail the build if they don't | Add a minimal test suite (even one smoke test) before copying `ci.yml`, or strip the test step and add it back incrementally |
 | Single shared environment (no staging) | `publish.yml`'s staging→production promotion and the ZAP baseline scan job both require a `staging` GitHub Environment to target | Stand up a staging environment, or delete the staging job and point the production job directly at your one environment (loses the safety net of testing the artifact before prod) |
 | No relational database, or non-relational (Mongo, DynamoDB) | `ci.yml`'s `backend` job spins up Postgres as a CI service container; `claude-commands/check-db.md` checks SQLAlchemy/Alembic conventions | Replace the CI service container and swap `check-db.md`'s checks for your datastore's actual conventions — don't leave a Postgres service container running idle in CI |

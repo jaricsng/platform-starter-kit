@@ -171,9 +171,9 @@ own Security Gate SCA check.
 
 | | |
 |---|---|
-| **Current** | Four cloud deploy jobs in `publish.yml` (Fly.io, Azure, AWS, GCP — all `if: false` until activated), Terraform for GCP Cloud Run only |
+| **Current** | Three cloud deploy jobs in `publish.yml` (Azure Container Apps, AWS ECS, GCP Cloud Run — all `if: false` until activated), Terraform for GCP Cloud Run only. Local multi-service orchestration is .NET Aspire's AppHost (`dotnet/`). |
 | **Swap point** | `publish.yml`'s `deploy-*` jobs (already structured as independent, mutually exclusive jobs — this is the easiest swap in the kit, by design) |
-| **Procedure — switch which cloud is active** | Remove `if: false` from the target job, fill its TODOs (see `docs/TODO.md`), leave the other three `if: false` jobs in place or delete them |
+| **Procedure — switch which cloud is active** | Remove `if: false` from the target job, fill its TODOs (see `docs/TODO.md`), leave the other two `if: false` jobs in place or delete them. The Azure job is the .NET Aspire deploy path (`azd`). |
 | **Procedure — swap IaC tool** (Terraform → Pulumi/CloudFormation/Bicep/CDK) | 1. `iac-terraform/gcp-cloud-run/` is the only IaC in the kit — there's no partial swap, the whole module gets rewritten in the new tool. 2. Carry over the **parameterization** (`project_id`, `region`, `environment`, scale-to-zero vs always-on — see that module's own `README.md`), not the HCL syntax. 3. Update `ci.yml`'s `terraform-plan` job entirely (`hashicorp/setup-terraform` → e.g. `pulumi/actions` for Pulumi) |
 | **Validate** | `terraform validate && terraform fmt -check` (or the new tool's equivalent) — this is exactly what `validate-kit.yml`'s `terraform-validate` job runs, update that workflow too if you change tools |
 
