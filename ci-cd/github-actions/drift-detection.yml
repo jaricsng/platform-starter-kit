@@ -22,6 +22,11 @@ permissions:
   contents: read
   issues: write            # to open/update a drift issue
 
+# Don't let a manual run overlap the scheduled one (or vice-versa).
+concurrency:
+  group: drift-detection
+  cancel-in-progress: false
+
 jobs:
   detect-drift:
     name: terraform plan (drift check)

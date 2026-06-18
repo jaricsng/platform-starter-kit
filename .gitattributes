@@ -1,0 +1,22 @@
+# Normalize line endings so a mixed-OS team (Windows/macOS/Linux) doesn't
+# get CRLF/LF churn in diffs — and, more importantly, so shell scripts and
+# the Makefile stay LF (CRLF breaks `#!/usr/bin/env bash` and Make's tabs).
+* text=auto eol=lf
+
+# Force LF on things that MUST be LF regardless of platform.
+*.sh    text eol=lf
+*.bash  text eol=lf
+*.py    text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.tf    text eol=lf
+*.json  text eol=lf
+Makefile text eol=lf
+
+# Treat binaries as binary (never line-ending-converted).
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary

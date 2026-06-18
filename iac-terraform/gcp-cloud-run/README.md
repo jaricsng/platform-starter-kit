@@ -38,8 +38,9 @@ image_tag  = "sha-abc1234"
 
 ## Required backend configuration
 
-This module doesn't configure remote state itself. Add a `backend "gcs"` block
-in your environment's `main.tf` (or `backend.tf`) pointing at your own GCS bucket:
+This module doesn't configure remote state itself. Copy
+[`backend.tf.example`](backend.tf.example) to `backend.tf` and set your own
+GCS bucket/prefix:
 
 ```hcl
 terraform {
@@ -49,6 +50,13 @@ terraform {
   }
 }
 ```
+
+**For a team this is not optional.** A GCS backend locks state during
+`apply`, so two people (or two CI runs) can't apply concurrently and corrupt
+each other's state — and it makes state shared rather than living on one
+laptop. The default (no backend block = local `terraform.tfstate`) has
+neither property: fine for a solo spike, unsafe the moment a second person
+runs Terraform. Use a separate `prefix` per environment.
 
 ## What this module assumes
 

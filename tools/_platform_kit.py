@@ -45,6 +45,9 @@ ALWAYS_FILES = [
     # Ship .gitignore so a scaffolded repo can't commit the .env the dev is
     # told to create from .env.example (it also ignores tfstate/tfvars/secrets).
     (".gitignore", ".gitignore"),
+    # Ship .gitattributes so a mixed-OS team doesn't get CRLF/LF churn (and
+    # shell scripts / the Makefile stay LF).
+    (".gitattributes", ".gitattributes"),
     ("tools/doctor.py", "tools/doctor.py"),
     ("tools/sync_check.py", "tools/sync_check.py"),
     ("tools/check_migrations.py", "tools/check_migrations.py"),

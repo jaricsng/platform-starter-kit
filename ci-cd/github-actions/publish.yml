@@ -18,6 +18,13 @@ on:
   push:
     branches: [main]
 
+# Team safety: serialize deploys so two merges landing close together don't
+# race the same environment. cancel-in-progress=false QUEUES the next run
+# rather than killing an in-flight deploy partway through.
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}

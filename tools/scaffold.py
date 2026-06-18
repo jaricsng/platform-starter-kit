@@ -207,6 +207,15 @@ def write_codeowners(output: Path):
 # handle. A CODEOWNERS file naming nobody real is the same as having
 # none, just quieter about it.
 * @TODO-set-your-team-or-handle
+
+# For a TEAM, map paths to the teams that own them so the right reviewers
+# are auto-requested. Uncomment and set real @org/team handles:
+# /.github/          @your-org/platform-team
+# /ci-cd/            @your-org/platform-team
+# /iac-terraform/    @your-org/platform-team
+# /observability/    @your-org/platform-team
+# /backend/          @your-org/api-team
+# /frontend/         @your-org/web-team
 """
     gh_dir = output / ".github"
     gh_dir.mkdir(parents=True, exist_ok=True)

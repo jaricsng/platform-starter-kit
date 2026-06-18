@@ -1,0 +1,19 @@
+# Remote state with locking — REQUIRED once more than one person (or CI)
+# runs Terraform against this module. Copy to `backend.tf` and set your
+# bucket/prefix.
+#
+# Why it matters for a team: a GCS backend locks the state during
+# `apply`, so two teammates (or two CI runs) can't apply at the same time
+# and corrupt each other's state. It also makes state SHARED — everyone
+# plans/applies against the same source of truth. The default (no backend
+# block = local `terraform.tfstate` on one laptop) has neither property:
+# fine solo, unsafe for a team.
+#
+# Use a separate `prefix` per environment so staging and production state
+# never collide.
+terraform {
+  backend "gcs" {
+    bucket = "REPLACE-WITH-YOUR-TFSTATE-BUCKET"   # create this bucket once, with versioning enabled
+    prefix = "cloud-run/staging"                  # e.g. cloud-run/production for prod
+  }
+}

@@ -17,6 +17,13 @@ on:
   pull_request:
     branches: [main, develop]
 
+# Cancel superseded runs: when a teammate pushes a new commit to the same
+# PR/branch, kill the in-progress CI run for the old commit instead of
+# letting both finish — saves runner minutes when many PRs are open at once.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend:
     name: Backend — lint + test

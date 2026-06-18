@@ -11,6 +11,31 @@ change.
 
 ## [Unreleased]
 
+## [2.1.3] - 2026-06-18
+
+Multi-developer / team support. Patch per the kit's versioning policy — no
+capability folder was added, moved, or removed.
+
+### Added
+
+- **Multi-developer / team support** — closed the gaps that bite once more
+  than one person works in a scaffolded repo:
+  - `concurrency:` groups on the workflows — `publish.yml` queues deploys so
+    two merges landing together can't race the same environment;
+    `ci.yml`/`drift-detection.yml` cancel/serialize superseded runs.
+  - `.gitattributes` (kit root + scaffolded) normalizes line endings to LF,
+    so a mixed-OS team doesn't get CRLF churn (and shell scripts / the
+    Makefile stay LF). Verified `git add --renormalize` is a no-op today.
+  - `iac-terraform/gcp-cloud-run/backend.tf.example` + a clearer README:
+    remote state with locking is **required** for a team (local state has no
+    locking and isn't shared — concurrent applies corrupt it).
+  - `tools/scaffold.py`'s generated `.github/CODEOWNERS` now ships commented
+    per-path team-ownership examples.
+  - New "Working as a team" section in `docs/GETTING-STARTED.md` tying
+    together consistent environments (devcontainer/.tool-versions), merge
+    safety (branch protection + CODEOWNERS), no-racing-deploys, shared
+    Terraform state, line-ending normalization, and per-developer secrets.
+
 ## [2.1.2] - 2026-06-18
 
 Public-release readiness: removed Fly.io (keeping Azure/AWS/GCP + .NET Aspire
