@@ -1,0 +1,14 @@
+# Minimal TechDocs config so catalog-info.yaml's backstage.io/techdocs-ref
+# annotation actually resolves to something, instead of pointing at docs
+# that won't render. Not needed if you're not running Backstage.
+site_name: platform-starter-kit
+docs_dir: docs
+nav:
+  - Getting Started: GETTING-STARTED.md
+  - Architecture Fit: ARCHITECTURE-FIT.md
+  - Asset Catalog: ASSET-CATALOG.md
+  - Enterprise Tooling: ENTERPRISE-TOOLING.md
+  - Tech Stack Swap Guide: TECH-STACK-SWAP-GUIDE.md
+  - TODO Placeholders: TODO.md
+plugins:
+  - techdocs-core

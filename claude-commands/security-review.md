@@ -1,4 +1,9 @@
-> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this skill.
+---
+description: AI-powered OWASP Top 10 security review of changed code
+argument-hint: [file/path]
+---
+
+> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this command.
 
 
 Perform an AI-powered security review of the changed code (or a specific file/path if provided as `$ARGUMENTS`) against the OWASP Top 10 (2021). This goes deeper than automated tools — it reads the code and reasons about logic-level vulnerabilities that scanners miss.
@@ -141,7 +146,7 @@ Final summary table:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  OWASP Top 10 Review — Task Manager
+  OWASP Top 10 Review — Your App
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   A01  Broken Access Control          ✅ / ⚠️ / ❌
   A02  Cryptographic Failures         ✅ / ⚠️ / ❌

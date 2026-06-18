@@ -1,4 +1,9 @@
-> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this skill.
+---
+description: Review Azure Container Apps deployment config against Azure best practices
+argument-hint: [file]
+---
+
+> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this command.
 
 
 Review the Azure Container Apps deployment configuration (`azure.yaml`, Aspire AppHost, and `.github/workflows/publish.yml` deploy-azure job) against Azure best practices for security, reliability, and cost efficiency. If `$ARGUMENTS` is provided, review that specific file.
@@ -13,7 +18,7 @@ Read `azure.yaml`.
 - `services.app.host` is `containerapp` — this tells azd to deploy via Azure Container Apps (ACA), not App Service or AKS.
 - `services.app.project` points to the AppHost csproj — if the path is wrong, `azd up` silently deploys nothing.
 - No hardcoded subscription IDs, tenant IDs, or resource group names in `azure.yaml` — these belong in `azd env set` or GitHub secrets, not committed config.
-- The `name` field matches the app name used in the CI/CD pipeline (`task-manager`) — a mismatch creates duplicate ACA environments.
+- The `name` field matches the app name used in the CI/CD pipeline (`your-app`) — a mismatch creates duplicate ACA environments.
 
 ---
 
@@ -41,7 +46,7 @@ grep -r "accountKey\|connectionString\|SharedAccessKey\|client_secret\|password"
 
 ## 3. Secrets Management (Key Vault, not plain env vars)
 
-**Check in `aspire/TaskManager.AppHost/Program.cs`:**
+**Check in `aspire/YourApp.AppHost/Program.cs`:**
 - `db-password` and `secret-key` parameters must resolve from **Azure Key Vault** in production, not from ACA environment variable plaintext. In `azure.yaml` or the generated Bicep, secrets must reference Key Vault secrets, not literal values.
 - Verify the Aspire manifest (if generated) does not contain resolved literal secret values — it should contain `"{parameter.secret-key}"` style references.
 
@@ -61,7 +66,7 @@ for name, res in m.get('resources', {}).items():
 
 ## 4. Database: Azure Database for PostgreSQL vs Container
 
-**Check `aspire/TaskManager.AppHost/Program.cs`:**
+**Check `aspire/YourApp.AppHost/Program.cs`:**
 - In production, the `db` resource should be **Azure Database for PostgreSQL Flexible Server** (managed PaaS), not the `AddPostgres()` Docker container. The Docker container is correct for local dev; for Azure production, the AppHost should use `AddAzurePostgresFlexibleServer()` (from `Aspire.Hosting.Azure.PostgreSQL`) or the database URL should point to an Azure-managed instance.
 - Flag if `AddPostgres("db").WithDataVolume()` is the only DB definition and there is no Azure-specific override — this will deploy a PostgreSQL container inside ACA which loses data on restart and is not production-appropriate.
 
@@ -69,8 +74,8 @@ for name, res in m.get('resources', {}).items():
 ```csharp
 // In Program.cs, use publisher-conditional configuration:
 var postgres = builder.ExecutionContext.IsPublishMode
-    ? builder.AddAzurePostgresFlexibleServer("db").AddDatabase("taskmanager")
-    : builder.AddPostgres("db").WithDataVolume("taskmanager-data").AddDatabase("taskmanager");
+    ? builder.AddAzurePostgresFlexibleServer("db").AddDatabase("appdb")
+    : builder.AddPostgres("db").WithDataVolume("app-data").AddDatabase("appdb");
 ```
 
 ---
@@ -128,7 +133,7 @@ Read `.github/workflows/publish.yml`, focus on the `deploy-azure` job.
 ── azure.yaml ───────────────────────────────────────
 ✅ host: containerapp
 ✅ No hardcoded subscription IDs
-⚠️  name "task-manager" differs from ACA environment name — confirm they match
+⚠️  name "your-app" differs from ACA environment name — confirm they match
 
 ── Identity & Secrets ──────────────────────────────
 ✅ CI uses OIDC (client-id + tenant-id), not AZURE_CREDENTIALS JSON
@@ -150,7 +155,7 @@ Final summary:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Azure Deployment Review — Task Manager
+  Azure Deployment Review — Your App
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   azure.yaml correctness     ✅ / ⚠️ / ❌
   Identity (OIDC vs keys)    ✅ / ⚠️ / ❌

@@ -12,3 +12,6 @@ services:
     environment:
       OTLP_ENDPOINT: http://jaeger:4317
       OTEL_ENABLED: "true"
+      # OTEL_SERVICE_NAME: app   # defaults to "app" — set this if you rename
+      # the service or run a second instance, and update prometheus.yml's
+      # job_name/targets to match (see docs/TECH-STACK-SWAP-GUIDE.md)

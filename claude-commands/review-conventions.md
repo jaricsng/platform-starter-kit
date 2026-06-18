@@ -1,4 +1,9 @@
-> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this skill.
+---
+description: Review changes against project architectural and style conventions
+argument-hint: [file/dir]
+---
+
+> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this command.
 
 
 Review the current branch's changes (or a specified file/directory) against the project's architectural and style conventions. This goes beyond what linters can catch — it checks layer boundaries, naming patterns, security hygiene, and the conventions defined in CLAUDE.md and CONTRIBUTING.md.

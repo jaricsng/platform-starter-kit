@@ -1,0 +1,34 @@
+version: 2
+updates:
+  # GitHub Actions used by this repo's own CI (validate-kit.yml) and by the
+  # CI/CD templates adopters copy out of ci-cd/github-actions/*.yml
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  # Terraform providers for the GCP Cloud Run module
+  - package-ecosystem: "terraform"
+    directory: "/iac-terraform/gcp-cloud-run"
+    schedule:
+      interval: "weekly"
+
+  # Python dependencies for the minimal-service example
+  - package-ecosystem: "pip"
+    directory: "/examples/minimal-service"
+    schedule:
+      interval: "weekly"
+
+  # NuGet dependencies for the Aspire ServiceDefaults + AppHost template
+  - package-ecosystem: "nuget"
+    directory: "/dotnet/ServiceDefaults"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "nuget"
+    directory: "/dotnet/apphost-template"
+    schedule:
+      interval: "weekly"

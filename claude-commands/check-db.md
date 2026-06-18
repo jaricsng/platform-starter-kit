@@ -1,4 +1,8 @@
-> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this skill.
+---
+description: Review the database tier for SQLAlchemy/Alembic conventions and index coverage
+---
+
+> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this command.
 
 
 Review the database tier for standards compliance: SQLAlchemy model conventions, Alembic migration hygiene, index coverage, and async usage patterns.

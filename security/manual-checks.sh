@@ -329,8 +329,8 @@ if [ "$RESP_EXIST" = "$RESP_NOEXIST" ]; then
   _pass "Login error responses are identical (no user enumeration)"
 else
   _fail "Login responses differ for existing vs non-existing email — user enumeration possible"
-  echo "       Existing user response:     $(echo $RESP_EXIST | python3 -m json.tool 2>/dev/null | head -3)"
-  echo "       Non-existing user response: $(echo $RESP_NOEXIST | python3 -m json.tool 2>/dev/null | head -3)"
+  echo "       Existing user response:     $(echo "$RESP_EXIST" | python3 -m json.tool 2>/dev/null | head -3)"
+  echo "       Non-existing user response: $(echo "$RESP_NOEXIST" | python3 -m json.tool 2>/dev/null | head -3)"
 fi
 
 # ─── A05: Security Misconfiguration ─────────────────────────────────────────

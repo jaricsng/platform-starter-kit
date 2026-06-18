@@ -33,9 +33,12 @@ var pgEndpoint = postgres.GetEndpoint("tcp");
 var api = builder.AddDockerfile("api", "../../path/to/your/api")
     .WithHttpEndpoint(port: 8000, name: "http")
     .WaitFor(postgres)
+    // +asyncpg prefix required for Python's SQLAlchemy async driver — Aspire's
+    // own WithReference(postgres) alone would inject the wrong format. See
+    // claude-commands/check-aspire.md section 2c.
     .WithEnvironment("DATABASE_URL",
         ReferenceExpression.Create(
-            $"postgresql://postgres:{dbPassword}@{pgEndpoint.Host}:{pgEndpoint.Port}/app"))
+            $"postgresql+asyncpg://postgres:{dbPassword}@{pgEndpoint.Host}:{pgEndpoint.Port}/app"))
     .WithEnvironment("SECRET_KEY",   secretKey)
     .WithEnvironment("CORS_ORIGINS", corsOrigins)
     .WithEnvironment("OTEL_ENABLED", "true")

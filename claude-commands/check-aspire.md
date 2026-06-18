@@ -1,13 +1,18 @@
-> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this skill.
+---
+description: Review .NET Aspire AppHost config for orchestration, secrets, and multi-cloud readiness
+argument-hint: [file]
+---
+
+> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this command.
 
 
-Review the .NET Aspire AppHost configuration in `aspire/TaskManager.AppHost/` against best practices for orchestration correctness, secret hygiene, service wiring, and multi-cloud readiness. If `$ARGUMENTS` is provided, review that specific file. Otherwise review all files under `aspire/`.
+Review the .NET Aspire AppHost configuration in `aspire/YourApp.AppHost/` against best practices for orchestration correctness, secret hygiene, service wiring, and multi-cloud readiness. If `$ARGUMENTS` is provided, review that specific file. Otherwise review all files under `aspire/`.
 
 ---
 
-## 1. AppHost Project File (`TaskManager.AppHost.csproj`)
+## 1. AppHost Project File (`YourApp.AppHost.csproj`)
 
-Read `aspire/TaskManager.AppHost/TaskManager.AppHost.csproj`.
+Read `aspire/YourApp.AppHost/YourApp.AppHost.csproj`.
 
 **Check:**
 - `<IsAspireHost>true</IsAspireHost>` is present (required for Aspire tooling to recognise the project)
@@ -28,7 +33,7 @@ Read `aspire/TaskManager.AppHost/TaskManager.AppHost.csproj`.
 
 ## 2. Service Wiring (`Program.cs`)
 
-Read `aspire/TaskManager.AppHost/Program.cs`.
+Read `aspire/YourApp.AppHost/Program.cs`.
 
 ### 2a. Dependency ordering
 - Every service that depends on another must use `.WaitFor(dependency)`. Verify:
@@ -50,7 +55,7 @@ Read `aspire/TaskManager.AppHost/Program.cs`.
 - Non-secret config (e.g., `ENVIRONMENT`, `OTEL_ENABLED`) should be plain `.WithEnvironment()` strings — no need to make them parameters.
 
 ### 2e. Data persistence
-- PostgreSQL must use `.WithDataVolume("taskmanager-data")` (or equivalent named volume). A missing `WithDataVolume()` means the database is wiped every time Aspire restarts — flag this.
+- PostgreSQL must use `.WithDataVolume("app-data")` (or equivalent named volume). A missing `WithDataVolume()` means the database is wiped every time Aspire restarts — flag this.
 
 ### 2f. Resource naming
 - Aspire resource names (`"db"`, `"api"`, `"frontend"`) must be lowercase kebab-case. They become DNS labels in Docker networking — uppercase or underscores will cause resolution failures.
@@ -59,7 +64,7 @@ Read `aspire/TaskManager.AppHost/Program.cs`.
 
 ## 3. Settings Files
 
-Read `aspire/TaskManager.AppHost/appsettings.json` and `appsettings.Development.json`.
+Read `aspire/YourApp.AppHost/appsettings.json` and `appsettings.Development.json`.
 
 **Check:**
 - `appsettings.Development.json` may contain default parameter values for local dev convenience, but must **not** be used in a production environment. Verify the file is in `.gitignore` OR that the values are clearly placeholder/dev-only values (never production passwords).
@@ -71,7 +76,7 @@ Read `aspire/TaskManager.AppHost/appsettings.json` and `appsettings.Development.
 
 ## 4. ServiceDefaults Project
 
-Read `aspire/TaskManager.ServiceDefaults/Extensions.cs`.
+Read `aspire/YourApp.ServiceDefaults/Extensions.cs`.
 
 **Check:**
 - `AddOpenTelemetry()` is configured with both `.WithMetrics()` and `.WithTracing()` — missing one means incomplete observability.
@@ -85,12 +90,12 @@ Read `aspire/TaskManager.ServiceDefaults/Extensions.cs`.
 
 Run:
 ```bash
-dotnet build aspire/TaskManager.AppHost/TaskManager.AppHost.csproj --nologo -q 2>&1
+dotnet build aspire/YourApp.AppHost/YourApp.AppHost.csproj --nologo -q 2>&1
 ```
 
 If the Aspire workload is installed, also run:
 ```bash
-dotnet run --project aspire/TaskManager.AppHost \
+dotnet run --project aspire/YourApp.AppHost \
   -- --publisher manifest --output-path /tmp/aspire-manifest.json 2>&1 | tail -5
 cat /tmp/aspire-manifest.json 2>/dev/null | python3 -m json.tool --no-indent | head -40
 ```
@@ -107,8 +112,8 @@ cat /tmp/aspire-manifest.json 2>/dev/null | python3 -m json.tool --no-indent | h
 Verify the `contextPath` and `dockerfilePath` references in `Program.cs` point to valid locations relative to the AppHost project:
 
 ```bash
-ls /Users/jaricsng/dev/ai-assisted/learn/claudecode/task-manager/backend/Dockerfile
-ls /Users/jaricsng/dev/ai-assisted/learn/claudecode/task-manager/frontend/Dockerfile
+ls backend/Dockerfile
+ls frontend/Dockerfile
 ```
 
 - `AddDockerfile("api", "../../backend")` → resolves to `backend/Dockerfile` from the project root ✅
@@ -133,7 +138,7 @@ Final summary:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Aspire Best Practice Review — Task Manager
+  Aspire Best Practice Review — Your App
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Project file          ✅ / ⚠️ / ❌
   Service wiring        ✅ / ⚠️ / ❌

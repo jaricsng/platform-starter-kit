@@ -457,9 +457,8 @@ jobs:
   # To activate:
   #   1. Configure OIDC trust between this repo and an AWS deploy role
   #   2. Create GitHub Environment: production-aws (add reviewer + AWS_* secrets)
-  #   3. Provide your own deploy script (TODO below) — see the original
-  #      task-manager repo's aws/deploy.sh for a worked example, or write
-  #      your own `aws ecs update-service` / CDK / Terraform invocation
+  #   3. Provide your own deploy script (TODO below) — e.g. an
+  #      `aws ecs update-service` invocation, or a CDK/Terraform apply
   #   4. Remove the `if: false` line below
 
   deploy-aws:

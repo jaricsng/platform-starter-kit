@@ -1,14 +1,19 @@
-> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this skill.
+---
+description: Run a structured penetration test against the API
+argument-hint: [focus-area]
+---
+
+> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this command.
 
 
-Run a structured penetration test against the Task Manager API and report findings.
+Run a structured penetration test against the Your App API and report findings.
 
 If `$ARGUMENTS` specifies a focus area (`authentication`, `access-control`, `injection`, `design`), test only that area.
 If no argument is given, run the full automated check suite and offer to run ZAP afterward.
 
 ## Authorization Notice
 
-This skill targets `http://localhost:8000` only — your own running instance.
+This command targets `http://localhost:8000` only — your own running instance.
 Never point it at any other system without explicit written authorisation.
 
 ## Steps
@@ -83,7 +88,7 @@ After all checks, output a structured report:
 
 ```
 ╔══════════════════════════════════════════════════════════╗
-║     Task Manager API — Penetration Test Summary          ║
+║     Your App API — Penetration Test Summary          ║
 ║     Tested: http://localhost:8000                        ║
 ╚══════════════════════════════════════════════════════════╝
 

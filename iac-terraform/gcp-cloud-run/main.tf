@@ -1,9 +1,9 @@
 locals {
-  name_prefix = "task-manager-${var.environment}"
+  name_prefix = "${var.app_name}-${var.environment}"
   image        = "ghcr.io/${var.github_repository}/api:${var.image_tag}"
 
   labels = {
-    app         = "task-manager"
+    app         = var.app_name
     environment = var.environment
     managed_by  = "terraform"
     team        = "platform"
@@ -42,13 +42,13 @@ resource "google_sql_database_instance" "main" {
   }
 }
 
-resource "google_sql_database" "taskmanager" {
-  name     = "taskmanager"
+resource "google_sql_database" "app" {
+  name     = "appdb"
   instance = google_sql_database_instance.main.name
 }
 
-resource "google_sql_user" "taskuser" {
-  name     = "taskuser"
+resource "google_sql_user" "app" {
+  name     = "appuser"
   instance = google_sql_database_instance.main.name
   password = random_password.db_password.result
 }
@@ -70,9 +70,10 @@ resource "google_secret_manager_secret" "database_url" {
 resource "google_secret_manager_secret_version" "database_url" {
   secret = google_secret_manager_secret.database_url.id
   secret_data = format(
-    "postgresql+asyncpg://taskuser:%s@/%s?host=/cloudsql/%s",
+    "postgresql+asyncpg://%s:%s@/%s?host=/cloudsql/%s",
+    google_sql_user.app.name,
     random_password.db_password.result,
-    google_sql_database.taskmanager.name,
+    google_sql_database.app.name,
     google_sql_database_instance.main.connection_name
   )
 }
@@ -80,7 +81,7 @@ resource "google_secret_manager_secret_version" "database_url" {
 # ── Service Account for Cloud Run ─────────────────────────────────────────────
 resource "google_service_account" "api" {
   account_id   = "${local.name_prefix}-api"
-  display_name = "Task Manager API — ${var.environment}"
+  display_name = "${var.app_name} API — ${var.environment}"
 }
 
 resource "google_secret_manager_secret_iam_member" "api_database_url" {

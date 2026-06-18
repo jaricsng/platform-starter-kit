@@ -14,6 +14,7 @@ module "api" {
   source = "../../../iac-terraform/gcp-cloud-run"
 
   project_id         = var.project_id
+  app_name           = "your-app"          # prefixes every resource this module creates
   region             = "us-central1"
   environment        = "staging"          # or "production"
   image_tag          = var.image_tag      # e.g. sha-abc1234

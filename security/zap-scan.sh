@@ -60,7 +60,7 @@ EXIT_CODE=$?
 echo ""
 echo "================================================================="
 echo "Scan complete. Reports written to security/reports/:"
-ls -1 "$REPORT_DIR" | grep "$TIMESTAMP"
+ls -1 "$REPORT_DIR"/*"$TIMESTAMP"*
 echo ""
 echo "Open the HTML report in a browser:"
 echo "  open $REPORT_DIR/zap-report-${TIMESTAMP}.html"

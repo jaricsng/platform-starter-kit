@@ -56,7 +56,7 @@ jobs:
             --profile observability up --build -d
       - name: Wait for /health
         run: |
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             if curl -sf http://localhost:8000/health; then exit 0; fi
             sleep 2
           done

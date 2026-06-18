@@ -1,4 +1,8 @@
-> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this skill.
+---
+description: Run an automated multi-tool SAST/dependency/secret scan across all tiers
+---
+
+> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this command.
 
 
 Run an automated multi-tool security scan across all tiers. Executes SAST, dependency CVE checks, and secret pattern detection without modifying any files. Produces a risk-ranked report.
@@ -89,7 +93,7 @@ Flag any endpoint that looks like it should be protected but isn't (e.g., a `DEL
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Security Scan — Task Manager
+  Security Scan — Your App
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   SAST (bandit)              ✅ / ❌   0 / N findings
@@ -115,4 +119,4 @@ For every finding, provide a specific remediation step.
 - `bandit` and `pip-audit` must be installed: `pip install -e ".[dev]"` (they are in dev extras)
 - If a tool is not installed, note the skip and show the install command
 - Do NOT display actual secret values — only show the file:line and pattern category
-- This skill only reads files; it never modifies anything
+- This command only reads files; it never modifies anything

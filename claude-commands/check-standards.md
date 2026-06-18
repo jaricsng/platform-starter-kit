@@ -1,4 +1,8 @@
-> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this skill.
+---
+description: Run the full pre-merge quality gate across all tiers
+---
+
+> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this command.
 
 
 Run the full pre-merge quality gate across all three tiers: Python linting, TypeScript type checking + ESLint, and both test suites with coverage. This is the same set of checks that CI runs — use it before opening a PR.
@@ -40,7 +44,7 @@ After all checks complete, produce a report in this format:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Standards check — Task Manager
+  Standards check — Your App
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Python (backend/)
@@ -69,7 +73,7 @@ For every ❌ item, list the failing details below the table with the exact comm
 
 ## Context
 
-- Run from the project root (`task-manager/`)
+- Run from the project root (`your-app/`)
 - The Docker build step requires Docker Desktop to be running; skip it and note the skip if Docker is not available
 - Coverage must be ≥70% on both backend and frontend — this is enforced by CI
 - If the user passes `--no-docker` as an argument (`/check-standards --no-docker`), skip the Docker build step

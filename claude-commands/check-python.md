@@ -1,4 +1,8 @@
-> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this skill.
+---
+description: Run backend Python lint/type checks without modifying files
+---
+
+> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this command.
 
 
 Run all Python coding-standard checks for the backend tier without modifying any files. Report every violation grouped by tool, explain what each rule enforces, and tell the user exactly which command to run to fix it.

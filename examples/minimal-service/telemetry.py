@@ -21,9 +21,10 @@ from prometheus_client import make_asgi_app
 def setup_telemetry(app) -> None:
     """Configure OTel SDK, auto-instrument FastAPI, mount /metrics.
 
-    Reads OTLP_ENDPOINT (default http://jaeger:4317) and OTEL_ENABLED
-    (default "true") from the environment — set OTEL_ENABLED=false to skip
-    wiring entirely (e.g. in unit tests).
+    Reads OTLP_ENDPOINT (default http://jaeger:4317), OTEL_ENABLED
+    (default "true"), and OTEL_SERVICE_NAME (default "app", matching
+    observability/prometheus.yml's default job name) from the environment
+    — set OTEL_ENABLED=false to skip wiring entirely (e.g. in unit tests).
     """
     if os.environ.get("OTEL_ENABLED", "true").lower() == "false":
         return
@@ -32,7 +33,7 @@ def setup_telemetry(app) -> None:
 
     resource = Resource.create(
         {
-            ResourceAttributes.SERVICE_NAME: "app",
+            ResourceAttributes.SERVICE_NAME: os.environ.get("OTEL_SERVICE_NAME", "app"),
             ResourceAttributes.SERVICE_VERSION: "0.1.0",
             ResourceAttributes.DEPLOYMENT_ENVIRONMENT: "development",
         }

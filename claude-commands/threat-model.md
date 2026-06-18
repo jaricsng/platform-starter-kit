@@ -1,7 +1,12 @@
-> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this skill.
+---
+description: Generate a STRIDE threat model for the app or a feature
+argument-hint: [feature]
+---
+
+> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this command.
 
 
-Generate a STRIDE threat model for the Task Manager application or a specific feature. This is a shift-left security practice: identifying threats during design (or code review) rather than after deployment.
+Generate a STRIDE threat model for the Your App application or a specific feature. This is a shift-left security practice: identifying threats during design (or code review) rather than after deployment.
 
 If `$ARGUMENTS` is provided, focus the threat model on that feature or component (e.g., `/threat-model authentication`, `/threat-model task-status-transition`, `/threat-model file-upload`).
 Otherwise, produce a full application-level threat model.

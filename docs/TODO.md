@@ -12,6 +12,7 @@ of them.
 | `ci-cd/pre-commit/.pre-commit-config.yaml` | `files: ^backend/...`-style path filters | Your repo's actual source directories |
 | `ci-cd/github-actions/ci.yml` | `working-directory: backend` / `frontend` | Your repo's actual source directories |
 | `ci-cd/github-actions/ci.yml` | `iac-terraform/gcp-cloud-run` terraform-plan working directory | Wherever you place your Terraform module |
+| `ci-cd/github-actions/ci.yml` | `services: postgres:` block (image + connection env vars) | Your actual database engine, if not Postgres — see `docs/TECH-STACK-SWAP-GUIDE.md`'s database-swap row |
 | `ci-cd/github-actions/publish.yml` | `TODO-your-app-staging`, `TODO-your-app-production` (Fly.io) | Your actual Fly.io app names |
 | `ci-cd/github-actions/publish.yml` | `deploy/aws-deploy.sh`, `deploy/gcp-deploy.sh` | Your own deploy scripts, or remove the job if not targeting that cloud |
 | `ci-cd/github-actions/publish.yml` | Every cloud deploy job's `if: false` | Remove once the matching GitHub Environment + secrets (below) are configured |
@@ -20,7 +21,9 @@ of them.
 | `observability/grafana/dashboards/starter-dashboard.json` | `job="app"` queries | Your service's job label |
 | `load-testing/k6/*.js`, `load-testing/locust/locustfile.py` | Worked-example endpoint paths/payloads (see each file's TODO header) | Your own API's routes and request bodies |
 | `iac-terraform/gcp-cloud-run/` | `terraform.tfvars`, GCS backend block | Your GCP project ID, image tag, GitHub repo, and a remote-state bucket (see the module's own `README.md`) |
+| `iac-terraform/gcp-cloud-run/variables.tf` | `app_name` (defaults to `"app"`) | Your application's actual name — prefixes every resource the module creates |
 | `security/manual-checks.sh` | `ENDPOINTS` configuration block at the top of the file | Your own auth/resource routes; adapt or delete the A04 status-state-machine checks if you don't have a similar workflow |
+| `catalog-info.yaml` | `owner: TODO-platform-team` | Your actual Backstage group reference (e.g. `group:default/platform-team`) — only relevant if you run Backstage |
 
 ## Required CI secrets (only for deploy targets you activate)
 

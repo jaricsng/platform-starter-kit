@@ -1,4 +1,9 @@
-> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this skill.
+---
+description: Auto-fix safe ESLint violations in the frontend tier
+argument-hint: [file]
+---
+
+> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this command.
 
 
 Auto-fix all ESLint violations that have a safe automatic fix in the frontend tier, then run the full suite of checks to surface what remains.

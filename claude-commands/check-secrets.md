@@ -1,4 +1,8 @@
-> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this skill.
+---
+description: Scan the repo and git history for hardcoded secrets and credentials
+---
+
+> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this command.
 
 
 Scan the repository for hardcoded secrets, credentials, and sensitive values that should never be committed to version control. Checks tracked files, recent git history, and configuration hygiene.
@@ -78,7 +82,7 @@ Read `docker-compose.yml`:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Secrets Scan — Task Manager
+  Secrets Scan — Your App
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Tracked files scanned    ✅ / ❌   N matches
   Git history (last 50)    ✅ / ❌   N matches
@@ -97,6 +101,6 @@ Read `docker-compose.yml`:
 
 ## Context
 
-- This skill prints pattern categories, never the actual secret values
+- This command prints pattern categories, never the actual secret values
 - "Secret" in test fixtures (`ci-test-secret-key`) is not a real secret — it has no access to real systems
 - The purpose is to ensure production secrets (real JWT signing keys, real DB passwords) never enter version control

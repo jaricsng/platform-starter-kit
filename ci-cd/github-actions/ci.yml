@@ -27,6 +27,8 @@ jobs:
         working-directory: backend
 
     services:
+      # TODO: swap this image (and the connection env vars used below) if
+      # your backend uses a different engine — see docs/TECH-STACK-SWAP-GUIDE.md
       postgres:
         image: postgres:16-alpine
         env:

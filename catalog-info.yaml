@@ -1,0 +1,42 @@
+# Registers this kit in a Backstage (or compatible) software catalog so
+# it's discoverable/ownable like any other component, with a working
+# TechDocs link into docs/. This is a lightweight catalog registration,
+# not a Backstage Scaffolder Template (kind: Template) — a Template would
+# duplicate tools/scaffold.py's logic in Backstage's own Nunjucks-based
+# templating engine. If you actually run Backstage and want a "Create"
+# button backed by this kit, wrap tools/scaffold.py in a `scaffolder:run`
+# custom action instead of re-implementing the substitution logic in YAML.
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: platform-starter-kit
+  description: >-
+    Golden-path starter kit for DevSecOps platform engineering — pre-commit
+    security baseline, CI/CD pipeline shape, observability stack,
+    load-testing scenarios, a Terraform module, OWASP pen-test scripts, and
+    a Claude Code command library, organized by capability.
+  annotations:
+    github.com/project-slug: jaricsng/platform-starter-kit
+    backstage.io/techdocs-ref: dir:.
+  tags:
+    - golden-path
+    - devsecops
+    - starter-kit
+    - platform-engineering
+  links:
+    - url: https://github.com/jaricsng/platform-starter-kit/blob/main/docs/GETTING-STARTED.md
+      title: Getting Started
+      icon: docs
+    - url: https://github.com/jaricsng/platform-starter-kit/blob/main/docs/ARCHITECTURE-FIT.md
+      title: Architecture Fit Checklist
+      icon: docs
+    - url: https://github.com/jaricsng/platform-starter-kit/blob/main/docs/ASSET-CATALOG.md
+      title: Asset Catalog
+      icon: docs
+spec:
+  type: golden-path
+  lifecycle: production
+  # TODO: replace with your actual Backstage group reference (e.g.
+  # group:default/platform-team) — this placeholder won't resolve in your
+  # catalog as-is.
+  owner: TODO-platform-team

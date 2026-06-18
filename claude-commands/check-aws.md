@@ -1,4 +1,9 @@
-> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this skill.
+---
+description: Review AWS ECS Fargate deployment config against AWS best practices
+argument-hint: [file]
+---
+
+> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this command.
 
 
 Review the AWS ECS Fargate deployment configuration (`aws/ecs/`, `aws/deploy.sh`, and the `deploy-aws` job in `.github/workflows/publish.yml`) against AWS best practices for security, reliability, and operational readiness. If `$ARGUMENTS` is provided, review that specific file.
@@ -115,18 +120,18 @@ Read `.github/workflows/publish.yml`, focus on the `deploy-aws` job.
 
 ```bash
 aws secretsmanager get-secret-value \
-  --secret-id task-manager/database-url \
+  --secret-id your-app/database-url \
   --query SecretString --output text 2>/dev/null || echo "Secret not yet created"
 ```
 
-If the secret exists and contains `@db:5432` or a container hostname, flag it — the host should be an RDS endpoint (e.g., `task-manager-db.xxxx.ap-southeast-1.rds.amazonaws.com`).
+If the secret exists and contains `@db:5432` or a container hostname, flag it — the host should be an RDS endpoint (e.g., `your-app-db.xxxx.ap-southeast-1.rds.amazonaws.com`).
 
 ---
 
 ## 7. Observability
 
 **Check:**
-- CloudWatch log groups referenced in `awslogs-group` (`/ecs/task-manager-api`, `/ecs/task-manager-frontend`) must exist — they should be created via IaC before first deploy, not left to auto-create (auto-create gives them no retention policy, defaulting to "never expire" which accumulates cost).
+- CloudWatch log groups referenced in `awslogs-group` (`/ecs/your-app-api`, `/ecs/your-app-frontend`) must exist — they should be created via IaC before first deploy, not left to auto-create (auto-create gives them no retention policy, defaulting to "never expire" which accumulates cost).
 - Recommended: set `--log-group-arn` retention to 30 days.
 - For distributed tracing: if `OTEL_ENABLED=true`, `OTLP_ENDPOINT` should point to **AWS X-Ray OTLP endpoint** or an OpenTelemetry Collector sidecar — not to `jaeger:4317` (the local dev endpoint).
 
@@ -156,7 +161,7 @@ Final summary:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  AWS Deployment Review — Task Manager
+  AWS Deployment Review — Your App
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   IAM roles (least privilege)  ✅ / ⚠️ / ❌
   Secrets (Secrets Manager)    ✅ / ⚠️ / ❌

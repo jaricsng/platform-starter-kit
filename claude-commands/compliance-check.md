@@ -1,4 +1,9 @@
-> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this skill.
+---
+description: Run a full best-practice compliance scorecard across all domains
+argument-hint: [domain]
+---
+
+> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this command.
 
 
 Run a full best-practice compliance check across all domains: code quality, security (static and runtime), architecture conventions, enterprise governance, observability, documentation completeness, container security, and CI/CD hygiene. Produces a single pass/fail scorecard.
@@ -52,8 +57,8 @@ Run both test suites and check coverage meets the 70% gate.
 
 ```bash
 # Backend (via Docker if system Python ≠ 3.12)
-docker run --rm --network task-manager_default \
-  -e DATABASE_URL="postgresql+asyncpg://taskuser:taskpass@db:5432/taskmanager" \
+docker run --rm --network your-app_default \
+  -e DATABASE_URL="postgresql+asyncpg://appuser:apppass@db:5432/appdb" \
   -e SECRET_KEY="test-secret-key-for-local-dev-only" \
   -e ENVIRONMENT=test -e OTEL_ENABLED=false \
   -v "$(pwd)/backend:/app" python:3.12-slim \
@@ -344,7 +349,7 @@ After running all domains, produce this report:
 
 ```
 ╔══════════════════════════════════════════════════════════════════╗
-║  Best-Practice Compliance — Task Manager                         ║
+║  Best-Practice Compliance — Your App                         ║
 ║  Date: YYYY-MM-DD                                                ║
 ╚══════════════════════════════════════════════════════════════════╝
 

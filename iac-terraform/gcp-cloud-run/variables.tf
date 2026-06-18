@@ -3,6 +3,12 @@ variable "project_id" {
   description = "GCP project ID"
 }
 
+variable "app_name" {
+  type        = string
+  default     = "app"
+  description = "Short, lowercase, kebab-case name used as a prefix for every resource this module creates (Cloud Run service, Cloud SQL instance, secrets, service account). Override with your own application's name."
+}
+
 variable "region" {
   type        = string
   description = "GCP region for all resources"

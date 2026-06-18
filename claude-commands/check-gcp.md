@@ -1,4 +1,9 @@
-> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this skill.
+---
+description: Review GCP Cloud Run deployment config against GCP best practices
+argument-hint: [file]
+---
+
+> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this command.
 
 
 Review the GCP Cloud Run deployment configuration (`infra/gcp/`, `infra/gcp/deploy.sh`, and the `deploy-gcp` job in `.github/workflows/publish.yml`) against GCP best practices for security, reliability, and cost efficiency. If `$ARGUMENTS` is provided, review that specific file.
@@ -13,7 +18,7 @@ Read both files.
 - Every Cloud Run service must have an explicit `serviceAccountName` that is a **dedicated service account** (not the default Compute Engine service account `PROJECT_ID-compute@developer.gserviceaccount.com` which has broad Editor/Owner-level access by default).
 - The API service account should have only:
   - `roles/cloudsql.client` (connect to Cloud SQL)
-  - `roles/secretmanager.secretAccessor` for the specific secrets (`task-manager-database-url`, `task-manager-secret-key`)
+  - `roles/secretmanager.secretAccessor` for the specific secrets (`your-app-database-url`, `your-app-secret-key`)
   - `roles/cloudtrace.agent` and `roles/monitoring.metricWriter` (if OTel is enabled)
 - The frontend service account needs no GCP permissions (it serves static assets + proxies to API).
 - Flag if `serviceAccountName` is absent or points to the default compute SA.
@@ -35,7 +40,7 @@ for f in ['infra/gcp/api-service.yaml', 'infra/gcp/frontend-service.yaml']:
 "
 ```
 
-- Verify secret names in `secretKeyRef.name` (`task-manager-database-url`, `task-manager-secret-key`) match the Secret Manager secret IDs exactly — a mismatch causes deployment failure with a cryptic permission error.
+- Verify secret names in `secretKeyRef.name` (`your-app-database-url`, `your-app-secret-key`) match the Secret Manager secret IDs exactly — a mismatch causes deployment failure with a cryptic permission error.
 
 ### 1c. Cloud SQL connection
 - The API service connects to Cloud SQL. Verify:
@@ -124,7 +129,7 @@ Read `.github/workflows/publish.yml`, focus on the `deploy-gcp` job.
 ## 7. Frontend: `VITE_API_URL` with Dynamic API URL
 
 **Check `infra/gcp/frontend-service.yaml`:**
-- `VITE_API_URL` contains a hardcoded Cloud Run URL (`https://task-manager-api-HASH-REGION.a.run.app`). This URL changes every time the API service is deployed to a new region or project.
+- `VITE_API_URL` contains a hardcoded Cloud Run URL (`https://your-app-api-HASH-REGION.a.run.app`). This URL changes every time the API service is deployed to a new region or project.
 - The deploy script should dynamically resolve the API URL and pass it as a build arg or env var — verify `deploy.sh` substitutes this value before deploying the frontend.
 - For production, set a **custom domain** via Cloud Run domain mappings and reference the stable custom domain in `VITE_API_URL` — never reference the auto-generated `*.run.app` URL in production.
 
@@ -134,7 +139,7 @@ Read `.github/workflows/publish.yml`, focus on the `deploy-gcp` job.
 
 ```
 ── infra/gcp/api-service.yaml ──────────────────────
-✅ serviceAccountName set (task-manager-api@...)
+✅ serviceAccountName set (your-app-api@...)
 ✅ minScale: 1 (no cold starts)
 ✅ healthCheck: /health liveness probe configured
 ❌ DATABASE_URL in env[].value as plaintext — use valueFrom.secretKeyRef
@@ -155,7 +160,7 @@ Final summary:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  GCP Deployment Review — Task Manager
+  GCP Deployment Review — Your App
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Service account (least privilege)  ✅ / ⚠️ / ❌
   Secrets (Secret Manager)           ✅ / ⚠️ / ❌

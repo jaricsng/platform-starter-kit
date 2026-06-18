@@ -1,4 +1,8 @@
-> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this skill.
+---
+description: Audit Python/JS dependencies for CVEs and supply-chain risk (OWASP A06)
+---
+
+> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this command.
 
 
 Audit Python and JavaScript dependencies for known CVEs, abandoned packages, and supply-chain risks. This is the A06 (Vulnerable and Outdated Components) check from the OWASP Top 10.
@@ -96,7 +100,7 @@ If neither is present, flag ⚠️ and note: "Dependency CVEs are not checked in
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Dependency Audit — Task Manager
+  Dependency Audit — Your App
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   Python (pip-audit)

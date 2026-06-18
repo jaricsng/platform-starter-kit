@@ -1,7 +1,12 @@
-> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this skill.
+---
+description: Run a load test scenario and correlate results with traces/metrics
+argument-hint: [scenario]
+---
+
+> Adapted from a three-tier app lab. File/dir paths referenced inside (e.g. `backend/app/`, `frontend/src/`) are examples — adjust to match your own repo's layout before relying on this command.
 
 
-Run a load test scenario against the Task Manager API and analyse the results. Correlates load test data with Prometheus metrics and Jaeger traces to identify bottlenecks.
+Run a load test scenario against the Your App API and analyse the results. Correlates load test data with Prometheus metrics and Jaeger traces to identify bottlenecks.
 
 If `$ARGUMENTS` specifies a scenario (`smoke`, `load`, `spike`), run that k6 scenario.
 If no argument is given, run the smoke test first and ask which scenario to run next.

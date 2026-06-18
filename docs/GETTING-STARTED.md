@@ -19,7 +19,7 @@ flowchart TD
 
     subgraph day1["Day 1 — Code Quality Baseline"]
         d1a["Copy ci-cd/pre-commit/.pre-commit-config.yaml to repo root"]
-        d1b["Copy claude-skills/*.md -> .claude/commands/"]
+        d1b["Copy claude-commands/*.md -> .claude/commands/"]
         d1c["pre-commit install"]
         d1a --> d1b --> d1c
     end
@@ -72,6 +72,23 @@ flowchart TD
     end
 
     iacStep --> done(["Push changes to your own project repo\n-- this kit stays as the upstream reference"])
+
+    classDef terminal fill:#e6f4ea,stroke:#2e7d32,color:#1a1a1a,stroke-width:1px;
+    classDef step fill:#ffffff,stroke:#4c8bf5,color:#0b1320,stroke-width:1px;
+    classDef decision fill:#fff4e0,stroke:#b8860b,color:#1a1a1a,stroke-width:1px;
+    class start,done terminal;
+    class t1,t2,t3,d1a,d1b,d1c,c1,c2,c3,o1,o2,o3,aspireStep,l1,l2,l3,s1,s2,i1,i2,i3 step;
+    class aspireCheck decision;
+
+    style tryit fill:#f5f8ff,stroke:#4c8bf5,color:#0b1320
+    style day1 fill:#f5f8ff,stroke:#4c8bf5,color:#0b1320
+    style ci fill:#f5f8ff,stroke:#4c8bf5,color:#0b1320
+    style obsStep fill:#f5f8ff,stroke:#4c8bf5,color:#0b1320
+    style loadStep fill:#f5f8ff,stroke:#4c8bf5,color:#0b1320
+    style secStep fill:#f5f8ff,stroke:#4c8bf5,color:#0b1320
+    style iacStep fill:#f5f8ff,stroke:#4c8bf5,color:#0b1320
+
+    linkStyle default stroke:#333333,stroke-width:1.5px;
 ```
 
 ## 0. See it work first
@@ -82,6 +99,14 @@ cd examples/minimal-service
 # run from the repo root, not this directory
 ```
 
+Before going further, skim [`docs/ARCHITECTURE-FIT.md`](ARCHITECTURE-FIT.md)
+— it lists the signals your project is a different shape than this kit
+assumes (no containers, no `/health` endpoint, already on Kubernetes,
+secrets committed in source, ...) and what to fix before each step below,
+not after. If your stack just differs in specific tools (different
+language, CI platform, or database) rather than overall shape, see
+[`docs/TECH-STACK-SWAP-GUIDE.md`](TECH-STACK-SWAP-GUIDE.md) instead.
+
 Hit `/health`, watch a trace land in Jaeger (`:16686`) and a metric show up
 in Grafana (`:3000`). This confirms every extracted piece functions before
 you touch your own code.
@@ -91,10 +116,28 @@ you touch your own code.
 Click **"Use this template"** on GitHub for a clean copy with no shared
 history, or `git clone` if you just want to read it first.
 
+**Faster path:** skip steps 2–3 below by running `tools/scaffold.py`
+instead — it copies the pre-commit config, CI workflows, and whichever
+capability folders you choose into a new directory with every
+`your-app`/`YourApp` placeholder already replaced with your actual app
+name:
+
+```bash
+python3 platform-starter-kit/tools/scaffold.py \
+  --app-name my-service --output ../my-service --cloud gcp
+cd ../my-service
+python3 tools/doctor.py .   # confirms what's still missing — see ARCHITECTURE-FIT.md
+```
+
+It writes its own `TODO.md` in the new repo with only the placeholders it
+genuinely couldn't resolve (credentials, project IDs). Steps 2 onward below
+describe what `scaffold.py` does for you, if you'd rather do it by hand or
+need to understand what changed.
+
 ## 2. Day 1 — code-quality baseline
 
 - Copy `ci-cd/pre-commit/.pre-commit-config.yaml` to your repo root.
-- Copy `claude-skills/*.md` into your `.claude/commands/`.
+- Copy `claude-commands/*.md` into your `.claude/commands/`.
 - Adjust the `files:` path filters in the pre-commit config to match your tree.
 - Run `pre-commit install`.
 
@@ -151,3 +194,19 @@ docker compose -f <your-compose>.yml \
 
 Push to your own project's repo. This starter-kit repo stays as the
 upstream reference to re-sync from later.
+
+## 10. Re-syncing later
+
+If you used `tools/scaffold.py`, your repo has a `tools/sync_check.py`
+copy and a `PLATFORM-KIT.md` recording which kit commit you started from.
+Periodically run:
+
+```bash
+python3 tools/sync_check.py . --kit-path /path/to/platform-starter-kit --show-diffs
+```
+
+to see what's changed upstream since then, file by file. It's a report,
+not a merge tool — decide per file whether to pull a change in by hand.
+If you adopted by hand instead of scaffolding, there's no recorded commit
+to diff against; re-reading `docs/ASSET-CATALOG.md`'s "Findings worth
+knowing about" section periodically is the manual equivalent.
