@@ -419,7 +419,10 @@ jobs:
           AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Health check
+      - name: Health check + auto-rollback on failure
+        # Rollback shifts ingress traffic back to the previous revision, per
+        # operations/runbooks/rollback.md's Azure section. Set CONTAINERAPP_NAME
+        # + RESOURCE_GROUP to enable the rollback path.
         run: |
           API_URL=$(azd env get-value SERVICE_API_URI 2>/dev/null || \
                     azd env get-values --output json | jq -r '.SERVICE_API_URI // empty')
@@ -429,16 +432,30 @@ jobs:
           fi
           echo "API URL: $API_URL"
           for i in $(seq 1 12); do
-            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" "${API_URL}/health")
+            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" "${API_URL}/health" || echo "000")
             echo "Attempt $i: HTTP $STATUS"
             [ "$STATUS" = "200" ] && echo "✅ Azure deployment healthy" && exit 0
             sleep 10
           done
-          echo "❌ Health check failed — investigate in Azure Portal"
+          # TODO: set CONTAINERAPP_NAME + RESOURCE_GROUP (e.g. via vars.*) to
+          # enable auto-rollback; otherwise this just fails for manual handling.
+          APP="${CONTAINERAPP_NAME:-}"; RG="${RESOURCE_GROUP:-}"
+          if [ -n "$APP" ] && [ -n "$RG" ]; then
+            PREV=$(az containerapp revision list -n "$APP" -g "$RG" \
+              --query "reverse(sort_by([?properties.active], &properties.createdTime))[1].name" -o tsv 2>/dev/null || echo "")
+            if [ -n "$PREV" ]; then
+              echo "❌ Health check failed — shifting traffic back to $PREV"
+              az containerapp ingress traffic set -n "$APP" -g "$RG" --revision-weight "$PREV=100"
+            fi
+          else
+            echo "❌ Health check failed — CONTAINERAPP_NAME/RESOURCE_GROUP not set, manual rollback needed (see operations/runbooks/rollback.md)"
+          fi
           exit 1
         env:
           AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          CONTAINERAPP_NAME: ${{ vars.AZURE_CONTAINERAPP_NAME }}
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
 
       - name: Smoke test
         run: |
@@ -477,6 +494,16 @@ jobs:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
 
+      - name: Capture current (pre-deploy) task definition for rollback
+        id: prev
+        env:
+          CLUSTER: ${{ vars.ECS_CLUSTER }}
+          SERVICE: ${{ vars.ECS_SERVICE }}
+        run: |
+          PREV=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" \
+            --query "services[0].taskDefinition" --output text 2>/dev/null || echo "")
+          echo "taskdef=$PREV" >> "$GITHUB_OUTPUT"
+
       - name: Deploy to ECS
         env:
           REGION: ${{ vars.AWS_REGION }}
@@ -485,6 +512,29 @@ jobs:
           CLUSTER: ${{ vars.ECS_CLUSTER }}
         # TODO: provide your own deploy script
         run: bash deploy/aws-deploy.sh
+
+      - name: Health check + auto-rollback on failure
+        # Rollback re-deploys the previous task definition, per
+        # operations/runbooks/rollback.md's AWS ECS section.
+        env:
+          CLUSTER: ${{ vars.ECS_CLUSTER }}
+          SERVICE: ${{ vars.ECS_SERVICE }}
+        run: |
+          for i in $(seq 1 12); do
+            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" "${{ vars.AWS_ALB_URL }}/health" || echo "000")
+            echo "Attempt $i: HTTP $STATUS"
+            [ "$STATUS" = "200" ] && echo "✅ ECS deployment healthy" && exit 0
+            sleep 10
+          done
+          PREV="${{ steps.prev.outputs.taskdef }}"
+          if [ -n "$PREV" ] && [ -n "$SERVICE" ]; then
+            echo "❌ Health check failed — rolling back to $PREV"
+            aws ecs update-service --cluster "$CLUSTER" --service "$SERVICE" \
+              --task-definition "$PREV" --force-new-deployment
+          else
+            echo "❌ Health check failed — ECS_SERVICE/previous task def unset, manual rollback needed (see operations/runbooks/rollback.md)"
+          fi
+          exit 1
 
       - name: Smoke test
         run: |
@@ -519,6 +569,14 @@ jobs:
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Capture current (pre-deploy) revision for rollback
+        id: prev
+        run: |
+          PREV=$(gcloud run services describe TODO-your-service-name \
+            --region "${{ vars.GCP_REGION }}" --project "${{ vars.GCP_PROJECT_ID }}" \
+            --format="value(status.traffic[0].revisionName)" 2>/dev/null || echo "")
+          echo "revision=$PREV" >> "$GITHUB_OUTPUT"
+
       - name: Deploy to Cloud Run
         env:
           PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
@@ -527,6 +585,30 @@ jobs:
         # TODO: provide your own deploy script, or `terraform apply` against
         # iac-terraform/gcp-cloud-run/ directly
         run: bash deploy/gcp-deploy.sh
+
+      - name: Health check + auto-rollback on failure
+        # Mirrors deploy-fly-production. Rollback command per
+        # operations/runbooks/rollback.md's GCP section.
+        run: |
+          API_URL=$(gcloud run services describe TODO-your-service-name \
+            --region "${{ vars.GCP_REGION }}" --project "${{ vars.GCP_PROJECT_ID }}" \
+            --format="value(status.url)")
+          for i in $(seq 1 12); do
+            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" "${API_URL}/health" || echo "000")
+            echo "Attempt $i: HTTP $STATUS"
+            [ "$STATUS" = "200" ] && echo "✅ Cloud Run healthy" && exit 0
+            sleep 10
+          done
+          PREV="${{ steps.prev.outputs.revision }}"
+          if [ -n "$PREV" ]; then
+            echo "❌ Health check failed — rolling back traffic to $PREV"
+            gcloud run services update-traffic TODO-your-service-name \
+              --region "${{ vars.GCP_REGION }}" --project "${{ vars.GCP_PROJECT_ID }}" \
+              --to-revisions="$PREV=100"
+          else
+            echo "❌ Health check failed and no previous revision captured — manual rollback needed"
+          fi
+          exit 1
 
       - name: Smoke test
         run: |

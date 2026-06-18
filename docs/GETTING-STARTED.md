@@ -162,14 +162,23 @@ need to understand what changed.
   `test`/`lint`/`fmt` targets with your stack's commands once, and every
   developer and CI job inherits them. `cp .env.example .env` and fill in
   local values.
-- Copy `ci-cd/pre-commit/.pre-commit-config.yaml` to your repo root.
+- `scaffold.py` also drops a `.gitignore` (so the `.env` you just created
+  can't be committed) and a `.secrets.baseline` (so the `detect-secrets`
+  pre-commit hook works on your first commit instead of erroring). If you
+  adopt by hand, copy this kit's `.gitignore` and run
+  `detect-secrets scan > .secrets.baseline` (or `make setup`, which does it).
+- Copy `ci-cd/pre-commit/.pre-commit-config.yaml` to your repo root. Besides
+  secrets/SAST/lint, it shifts **Terraform** (`fmt`/`validate`/`tfsec`) and
+  the **migration-safety** check left of check-in — those hooks only fire
+  when the relevant files are staged, so they're free for non-IaC repos.
 - Copy `claude-commands/*.md` into your `.claude/commands/`.
 - Adjust the `files:` path filters in the pre-commit config to match your tree.
 - Run `pre-commit install`.
 
 ## 3. Day 1–2 — CI pipeline shape
 
-- Copy `ci-cd/github-actions/ci.yml` and `publish.yml` into `.github/workflows/`.
+- Copy `ci-cd/github-actions/ci.yml`, `publish.yml`, and `drift-detection.yml`
+  into `.github/workflows/`.
 - Edit working directories and test commands to match your stack.
 - Create the GitHub secrets listed in [`docs/TODO.md`](TODO.md) for whichever
   deploy target you plan to activate.
@@ -178,6 +187,14 @@ need to understand what changed.
   `tools/check_migrations.py` — see
   [`docs/DATABASE-MIGRATIONS.md`](DATABASE-MIGRATIONS.md)). Both no-op
   gracefully if the relevant files aren't present yet.
+- The `terraform-plan` job runs the `governance/policy-as-code/` Conftest
+  gate **in report mode by default** (prints violations, doesn't block).
+  Remove its `continue-on-error: true` to hard-gate once you trust the rules
+  (see [`governance/policy-as-code/README.md`](../governance/policy-as-code/README.md)).
+- `publish.yml`'s deploy jobs now health-check after deploy and
+  **auto-roll-back** on failure (all four targets). `drift-detection.yml`
+  runs `terraform plan` on a schedule and opens an issue when deployed infra
+  diverges from code — both ship gated; enable them with cloud auth.
 
 ## 4. Week 1 — observability
 

@@ -46,11 +46,17 @@ conftest test --policy policy examples/failing-plan.json   # exit 1, 2 failures
 
 ## Wiring into CI
 
-`ci-cd/github-actions/ci.yml`'s `terraform-plan` job has a commented
-`conftest test` step right after `terraform plan` — uncomment it once
-you've adapted the policy to your own module. It runs with
-`continue-on-error: true` by default, same as the `tfsec` step above it
-in that job: report first, enforce once you trust your own rules.
+`ci-cd/github-actions/ci.yml`'s `terraform-plan` job runs this gate
+**by default, in report mode**: the `Conftest policy-as-code gate (report
+mode)` step executes after `terraform plan`, prints any violations, but
+carries `continue-on-error: true` so it doesn't block the PR — same
+posture as the `tfsec` step above it. The step no-ops gracefully if the
+`governance/policy-as-code/policy` folder isn't present.
+
+**To hard-gate** (block a PR when a policy fails), once you've adapted the
+rules to your own module: remove the `continue-on-error: true` line from
+that step. That one line is the difference between "policy is visible" and
+"policy is enforced" — flip it when you trust your rules.
 
 ## Writing your own rules
 

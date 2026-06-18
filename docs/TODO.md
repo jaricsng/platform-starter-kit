@@ -12,6 +12,9 @@ of them.
 | `ci-cd/pre-commit/.pre-commit-config.yaml` | `files: ^backend/...`-style path filters | Your repo's actual source directories |
 | `ci-cd/github-actions/ci.yml` | `working-directory: backend` / `frontend` | Your repo's actual source directories |
 | `ci-cd/github-actions/ci.yml` | `iac-terraform/gcp-cloud-run` terraform-plan working directory | Wherever you place your Terraform module |
+| `ci-cd/github-actions/ci.yml` | Conftest gate's `continue-on-error: true` | Remove it to hard-gate PRs on a policy violation (it runs in report mode by default) |
+| `ci-cd/github-actions/drift-detection.yml` | `if: false`, cloud auth, `working-directory` | Remove `if: false` and configure WIF + remote state to enable scheduled drift detection |
+| `.secrets.baseline` | Generated empty by `scaffold.py` / `make setup` | Re-run `detect-secrets scan > .secrets.baseline` after adding code; audit findings with `detect-secrets audit .secrets.baseline` |
 | `ci-cd/github-actions/ci.yml` | `services: postgres:` block (image + connection env vars) | Your actual database engine, if not Postgres — see `docs/TECH-STACK-SWAP-GUIDE.md`'s database-swap row |
 | `ci-cd/github-actions/publish.yml` | `TODO-your-app-staging`, `TODO-your-app-production` (Fly.io) | Your actual Fly.io app names |
 | `ci-cd/github-actions/publish.yml` | `deploy/aws-deploy.sh`, `deploy/gcp-deploy.sh` | Your own deploy scripts, or remove the job if not targeting that cloud |

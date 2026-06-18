@@ -22,6 +22,7 @@ help: ## Show this help
 
 setup: ## Install dependencies + git hooks (fill in your stack's installs)
 	# TODO: e.g. `pip install -e ".[dev]"` or `npm ci` — see docs/TECH-STACK-SWAP-GUIDE.md
+	@command -v detect-secrets >/dev/null 2>&1 && { [ -f .secrets.baseline ] || detect-secrets scan > .secrets.baseline; } || true
 	@command -v pre-commit >/dev/null 2>&1 && pre-commit install || echo "pre-commit not installed — skipping hook install"
 
 run: up ## Alias for `up`

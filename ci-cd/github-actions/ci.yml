@@ -363,15 +363,29 @@ jobs:
         working-directory: iac-terraform/gcp-cloud-run
         continue-on-error: true   # plan output is informational on PRs
 
-      # Policy-as-code gate (OSS baseline) — uncomment once you've adapted
-      # governance/policy-as-code/policy/*.rego to your own module/cloud.
-      # See governance/policy-as-code/README.md.
-      # - name: Conftest policy-as-code gate
-      #   run: |
-      #     terraform show -json tfplan.binary > tfplan.json
-      #     conftest test --policy ../../governance/policy-as-code/policy tfplan.json
-      #   working-directory: iac-terraform/gcp-cloud-run
-      #   continue-on-error: true   # flip to false once you trust your own rules
+      # Policy-as-code gate (OSS baseline) — ACTIVE in report mode by default:
+      # it runs and prints violations, but continue-on-error keeps it from
+      # blocking until you've adapted the rules. To HARD-GATE (block the PR on
+      # a policy failure): remove the `continue-on-error: true` line below.
+      # No-ops if the policy folder isn't present. See
+      # governance/policy-as-code/README.md.
+      - name: Setup conftest
+        run: |
+          CONFTEST_VERSION=0.56.0
+          curl -sSL "https://github.com/open-policy-agent/conftest/releases/download/v${CONFTEST_VERSION}/conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz" \
+            | tar xz -C /tmp conftest
+          sudo mv /tmp/conftest /usr/local/bin/
+
+      - name: Conftest policy-as-code gate (report mode)
+        run: |
+          if [ -d ../../governance/policy-as-code/policy ]; then
+            terraform show -json tfplan.binary > tfplan.json
+            conftest test --policy ../../governance/policy-as-code/policy tfplan.json
+          else
+            echo "governance/policy-as-code/policy not found — skipping policy gate."
+          fi
+        working-directory: iac-terraform/gcp-cloud-run
+        continue-on-error: true   # remove this line to hard-gate the PR on a policy violation
 
       - name: Post plan as PR comment
         if: always()

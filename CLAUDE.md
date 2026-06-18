@@ -71,6 +71,17 @@ resource label), prefer teaching the scaffolder over leaving it manual.
   real bugs found and fixed in this repo's history; if you touch either
   file, re-run the `minimal-service-smoke` job locally before assuming it
   still boots.
+- The deploy jobs in `ci-cd/github-actions/publish.yml` and the
+  `detect-drift` job in `drift-detection.yml` ship `if: false` on purpose
+  (adopters remove it to activate). `actionlint` flags these as
+  "constant expression in condition" — that's expected, not a regression;
+  don't delete the `if: false`. These adopter-template workflows live under
+  `ci-cd/github-actions/` and aren't scanned by `validate-kit.yml` anyway.
+- `ci-cd/github-actions/ci.yml`'s Conftest gate is intentionally active but
+  soft (`continue-on-error: true` = report, not block). Don't "fix" it to
+  hard-fail by default — that's an adopter decision (remove the line). The
+  pre-commit `terraform_*` hooks need `terraform`/`tfsec` installed locally;
+  they no-op when no `*.tf` is staged.
 
 ## Validating changes
 
@@ -93,15 +104,16 @@ docker compose --project-directory . \
   -f observability/docker-compose.observability.yml \
   --profile observability down -v
 
-# Pre-commit config
+# Pre-commit config (now includes terraform_* + a local check-migrations hook)
 pre-commit validate-config ci-cd/pre-commit/.pre-commit-config.yaml
 
 # tools/ — if you touched scaffold.py, doctor.py, sync_check.py, or _platform_kit.py
 python3 tools/doctor.py examples/minimal-service   # should report only the known test gap
 rm -rf /tmp/scaffold-smoke
 python3 tools/scaffold.py --app-name smoke-test --output /tmp/scaffold-smoke --cloud gcp
-python3 /tmp/scaffold-smoke/tools/doctor.py /tmp/scaffold-smoke   # 3 expected FAILs (no Dockerfile/tests/OTel yet) + 1 WARN (catalog owner placeholder) — no false positives
+python3 /tmp/scaffold-smoke/tools/doctor.py /tmp/scaffold-smoke   # 3 expected FAILs (no Dockerfile/tests/OTel yet) + WARN (catalog owner); the Gitignore/secrets-baseline check should PASS (scaffold emits both)
 python3 tools/sync_check.py /tmp/scaffold-smoke --kit-path . --show-diffs   # sanity-check the diff output is readable
+test -f /tmp/scaffold-smoke/.gitignore && test -f /tmp/scaffold-smoke/.secrets.baseline && echo "scaffold security defaults present"
 rm -rf /tmp/scaffold-smoke
 
 # governance/policy-as-code — if you touched the Rego policy

@@ -172,6 +172,22 @@ def check_database(root: Path):
     return SKIP, "No recognized database client library detected — check manually if this service has a database"
 
 
+def check_gitignore_secrets(root: Path):
+    gitignore = root / ".gitignore"
+    if not gitignore.exists():
+        return FAIL, "No .gitignore — a committed .env would leak secrets; copy this kit's root .gitignore (it ignores .env/tfstate/tfvars)"
+    text = gitignore.read_text(errors="ignore")
+    env_ignored = any(
+        line.strip() in (".env", "*.env", ".env*") or line.strip().startswith(".env")
+        for line in text.splitlines()
+    )
+    if not env_ignored:
+        return FAIL, ".gitignore exists but doesn't ignore .env — add a `.env` line before creating one from .env.example"
+    if not (root / ".secrets.baseline").exists():
+        return WARN, ".env is gitignored (good), but no .secrets.baseline — run `detect-secrets scan > .secrets.baseline` (or `make setup`) so the pre-commit detect-secrets hook works"
+    return PASS, ".env is gitignored and a .secrets.baseline is present"
+
+
 def check_catalog_governance(root: Path):
     catalog = root / "catalog-info.yaml"
     if not catalog.exists():
@@ -194,6 +210,7 @@ CHECKS = [
     ("Kubernetes mismatch", check_kubernetes),
     ("Automated tests present", check_tests),
     ("Database engine", check_database),
+    ("Gitignore / secrets baseline", check_gitignore_secrets),
     ("Catalog ownership", check_catalog_governance),
 ]
 

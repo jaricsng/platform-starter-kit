@@ -101,7 +101,7 @@ flowchart LR
 | `dev-experience/` | The paved inner loop: a `Makefile` task interface (`make test`/`run`/`lint`/`doctor`/`obs-up`), a `.devcontainer`, `.tool-versions`, and `.env.example` — copied to repo root so local and CI run the same commands |
 | `claude-commands/` | 19 Claude Code slash commands — coding standards, security review, compliance, performance/pen testing, cloud config review |
 | `dotnet/` | .NET Aspire `ServiceDefaults` (OTel/health-check wiring) + an `AppHost` template for orchestrating multi-service apps |
-| `ci-cd/` | GitHub Actions CI/CD pipeline shape (lint → test → security → build → Trivy gate → SBOM → SLSA provenance → staged deploy) and a pre-commit security baseline |
+| `ci-cd/` | GitHub Actions CI/CD pipeline shape (lint → test → security → build → Trivy gate → SBOM → SLSA provenance → staged deploy with post-deploy health-check + auto-rollback), a scheduled infra `drift-detection.yml`, and a pre-commit baseline that shifts secrets/SAST/lint **and** Terraform (fmt/validate/tfsec) + migration checks left of check-in |
 | `observability/` | Jaeger + Prometheus + Grafana, provisioned and pre-wired as a Docker Compose overlay |
 | `load-testing/` | k6 (smoke/load/spike) and Locust scenarios with worked-example patterns (token pools, staged ramps, weighted user mixes) |
 | `iac-terraform/` | A parameterized GCP Cloud Run + Cloud SQL + Secret Manager Terraform module |

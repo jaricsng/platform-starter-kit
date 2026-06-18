@@ -40,7 +40,11 @@ TEXT_SUFFIXES = {
 ALWAYS_FILES = [
     ("ci-cd/github-actions/ci.yml", ".github/workflows/ci.yml"),
     ("ci-cd/github-actions/publish.yml", ".github/workflows/publish.yml"),
+    ("ci-cd/github-actions/drift-detection.yml", ".github/workflows/drift-detection.yml"),
     ("ci-cd/pre-commit/.pre-commit-config.yaml", ".pre-commit-config.yaml"),
+    # Ship .gitignore so a scaffolded repo can't commit the .env the dev is
+    # told to create from .env.example (it also ignores tfstate/tfvars/secrets).
+    (".gitignore", ".gitignore"),
     ("tools/doctor.py", "tools/doctor.py"),
     ("tools/sync_check.py", "tools/sync_check.py"),
     ("tools/check_migrations.py", "tools/check_migrations.py"),

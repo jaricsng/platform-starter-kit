@@ -23,6 +23,7 @@ import argparse
 import json
 import os
 import shutil
+import subprocess
 import sys
 import urllib.request
 from datetime import datetime, timezone
@@ -120,6 +121,85 @@ spec:
     (output / "catalog-info.yaml").write_text(content)
 
 
+# Fallback detect-secrets v1.5.0 baseline (default plugins/filters, no
+# results) used only when `detect-secrets` isn't installed at scaffold time.
+# An empty `plugins_used` would make the hook scan with no detectors, so the
+# real default plugin set is embedded to keep the fallback protective.
+_SECRETS_BASELINE_TEMPLATE = {
+    "version": "1.5.0",
+    "plugins_used": [
+        {"name": "ArtifactoryDetector"},
+        {"name": "AWSKeyDetector"},
+        {"name": "AzureStorageKeyDetector"},
+        {"name": "Base64HighEntropyString", "limit": 4.5},
+        {"name": "BasicAuthDetector"},
+        {"name": "CloudantDetector"},
+        {"name": "DiscordBotTokenDetector"},
+        {"name": "GitHubTokenDetector"},
+        {"name": "GitLabTokenDetector"},
+        {"name": "HexHighEntropyString", "limit": 3.0},
+        {"name": "IbmCloudIamDetector"},
+        {"name": "IbmCosHmacDetector"},
+        {"name": "IPPublicDetector"},
+        {"name": "JwtTokenDetector"},
+        {"name": "KeywordDetector", "keyword_exclude": ""},
+        {"name": "MailchimpDetector"},
+        {"name": "NpmDetector"},
+        {"name": "OpenAIDetector"},
+        {"name": "PrivateKeyDetector"},
+        {"name": "PypiTokenDetector"},
+        {"name": "SendGridDetector"},
+        {"name": "SlackDetector"},
+        {"name": "SoftlayerDetector"},
+        {"name": "SquareOAuthDetector"},
+        {"name": "StripeDetector"},
+        {"name": "TelegramBotTokenDetector"},
+        {"name": "TwilioKeyDetector"},
+    ],
+    "filters_used": [
+        {"path": "detect_secrets.filters.allowlist.is_line_allowlisted"},
+        {"path": "detect_secrets.filters.common.is_ignored_due_to_verification_policies", "min_level": 2},
+        {"path": "detect_secrets.filters.heuristic.is_indirect_reference"},
+        {"path": "detect_secrets.filters.heuristic.is_likely_id_string"},
+        {"path": "detect_secrets.filters.heuristic.is_lock_file"},
+        {"path": "detect_secrets.filters.heuristic.is_not_alphanumeric_string"},
+        {"path": "detect_secrets.filters.heuristic.is_potential_uuid"},
+        {"path": "detect_secrets.filters.heuristic.is_prefixed_with_dollar_sign"},
+        {"path": "detect_secrets.filters.heuristic.is_sequential_string"},
+        {"path": "detect_secrets.filters.heuristic.is_swagger_file"},
+        {"path": "detect_secrets.filters.heuristic.is_templated_secret"},
+    ],
+    "results": {},
+}
+
+
+def write_secrets_baseline(output: Path):
+    """Generate a detect-secrets baseline so the detect-secrets pre-commit
+    hook (configured with --baseline .secrets.baseline) works on the very
+    first commit instead of erroring on a missing file. Prefers a live
+    `detect-secrets scan` (correct schema for the installed version); falls
+    back to the embedded default baseline if the tool isn't available."""
+    baseline = output / ".secrets.baseline"
+    try:
+        # --all-files scans the filesystem rather than `git ls-files` — the
+        # output dir isn't a git repo yet, and without this the baseline
+        # would be empty and fail to allowlist the kit's worked-example
+        # placeholders (appuser:apppass, ci-test-secret-key, ...), blocking
+        # the adopter's very first commit.
+        result = subprocess.run(
+            ["detect-secrets", "scan", "--all-files"],
+            cwd=output, capture_output=True, text=True, timeout=60,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            baseline.write_text(result.stdout)
+            return
+    except (OSError, subprocess.SubprocessError):
+        pass
+    event = dict(_SECRETS_BASELINE_TEMPLATE)
+    event["generated_at"] = datetime.now(timezone.utc).isoformat()
+    baseline.write_text(json.dumps(event, indent=2) + "\n")
+
+
 def write_codeowners(output: Path):
     content = """# Default owner for everything in this repo. GitHub uses this to
 # auto-request review on every PR opened against the branches it
@@ -169,7 +249,9 @@ def write_readme(output: Path, variants: dict, args):
             included.append("- `governance/policy-as-code/` — example Conftest/OPA policy-as-code guardrails for the Terraform module")
     if not args.no_claude_commands:
         included.append("- `.claude/commands/` — Claude Code review/fix commands")
-    included.append("- `.github/workflows/`, `.pre-commit-config.yaml` — CI/CD pipeline shape + pre-commit security baseline")
+    included.append("- `.github/workflows/`, `.pre-commit-config.yaml` — CI/CD pipeline shape + pre-commit security baseline (incl. IaC + migration checks)")
+    included.append("- `.github/workflows/drift-detection.yml` — scheduled `terraform plan` drift check (ships gated; configure cloud auth to enable)")
+    included.append("- `.gitignore`, `.secrets.baseline` — `.env` can't be committed; detect-secrets hook works on first commit")
     included.append("- `Makefile`, `.devcontainer/`, `.tool-versions`, `.env.example` — paved inner loop (`make help` for the task list)")
     included.append("- `operations/` — rollback / incident / postmortem runbooks + SLO definitions")
     included.append("- `tools/check_migrations.py`, `docs/DATABASE-MIGRATIONS.md`, `docs/FEATURE-FLAGS.md` — schema-safety gate + safe-release patterns")
@@ -216,6 +298,8 @@ TODO_ROWS = [
      "| `.github/workflows/publish.yml` | GCP deploy job's `if: false`, `deploy/gcp-deploy.sh` | Remove once Workload Identity Federation is configured; provide your own deploy script, or `terraform apply` directly |"),
     (lambda a: a.cloud == "gcp",
      "| `iac-terraform/gcp-cloud-run/` | `terraform.tfvars`, GCS backend block | Your GCP project ID and a remote-state bucket (`app_name` is already set) |"),
+    (lambda a: a.cloud == "gcp",
+     "| `.github/workflows/drift-detection.yml` | `if: false`, cloud auth + backend | Remove `if: false` once WIF + remote state are configured, to enable scheduled drift detection |"),
     (lambda a: a.cloud == "gcp" and not a.no_governance,
      "| `governance/policy-as-code/policy/terraform_guardrails.rego` | Example only | Adapt the resource checks to your own requirements, or delete the folder if you don't want a policy-as-code gate — see `governance/policy-as-code/README.md` |"),
     (lambda a: not a.no_security,
@@ -343,6 +427,7 @@ def main():
     sha = kit_commit_sha()
     write_manifest(output, kebab, args, sha)
     write_catalog_info(output, variants, args)
+    write_secrets_baseline(output)
     write_codeowners(output)
     write_dependabot(output, args)
     write_readme(output, variants, args)

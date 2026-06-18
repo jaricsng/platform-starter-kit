@@ -11,6 +11,47 @@ change.
 
 ## [Unreleased]
 
+## [2.1.1] - 2026-06-18
+
+A "governance / shift-left / stay-right by default" pass: validated the kit
+against the Start-right / Shift-left / Stay-right model and closed the gaps
+where the *default* path left a secure behaviour off or broken (so the easy
+way wasn't yet the secure way). Patch per the kit's versioning policy — no
+capability folder was added, moved, or removed.
+
+### Added
+
+- `ci-cd/github-actions/drift-detection.yml` — scheduled
+  `terraform plan -detailed-exitcode` that opens/updates an `infra-drift`
+  GitHub issue when deployed infrastructure diverges from code (stay-right;
+  `sync_check.py` covers kit drift, this covers your own infra drift). Ships
+  gated like the deploy jobs; copied into scaffolded repos.
+- `tools/scaffold.py` now generates a `.gitignore` (copied from the kit, so a
+  scaffolded repo can't commit the `.env` it's told to create) and a valid
+  `.secrets.baseline` (live `detect-secrets scan`, or an embedded
+  default-plugins fallback) so the `detect-secrets` pre-commit hook works on
+  the first commit instead of erroring. `make setup` also bootstraps the
+  baseline if missing.
+- `tools/doctor.py` — new "Gitignore / secrets baseline" check (FAIL if `.env`
+  isn't ignored, WARN if no baseline), so the `golden-path-check` CI job
+  catches the footgun on every push.
+
+### Changed
+
+- `ci-cd/pre-commit/.pre-commit-config.yaml` shifts IaC + schema checks left:
+  added `terraform_fmt`/`terraform_validate`/`terraform_tfsec`
+  (antonbabenko/pre-commit-terraform) and a local `check_migrations.py` hook.
+  They only run when the relevant files are staged.
+- `ci-cd/github-actions/ci.yml`'s Conftest policy gate is now **active in
+  report mode by default** (was commented out): it runs and prints
+  violations but `continue-on-error: true` keeps it non-blocking; removing
+  that one line hard-gates the PR. Per the kit's "report first, enforce when
+  you trust your rules" posture.
+- `ci-cd/github-actions/publish.yml` — the Azure, AWS, and GCP deploy jobs now
+  do a post-deploy health check and **auto-roll-back on failure** (previously
+  only Fly.io did), using the per-provider commands documented in
+  `operations/runbooks/rollback.md`.
+
 ## [2.1.0] - 2026-06-18
 
 Minor per this kit's own versioning policy: three new capability folders

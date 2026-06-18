@@ -1,7 +1,15 @@
-# Pre-commit security + Python quality baseline.
+# Pre-commit security + Python quality baseline — shift-left feedback before
+# a commit ever reaches main (the no-commit-to-branch hook also blocks direct
+# commits to main outright).
+#
 # TODO: the `files:` patterns below assume your Python source lives under
 # `backend/`. Adjust each `files: ^backend/...` to match your tree
 # (or remove the `files:` filter to apply repo-wide).
+#
+# The Terraform hooks need `terraform` and `tfsec` available locally (the
+# devcontainer + .tool-versions provide terraform; `brew install tfsec` for
+# tfsec). They only run when *.tf files are staged, so non-IaC repos are
+# unaffected.
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -58,3 +66,27 @@ repos:
     hooks:
       - id: ruff
         files: ^backend/
+
+  # ── Infrastructure-as-Code (shift-left for Terraform) ─────────────────────
+  # fmt + validate + tfsec run on staged *.tf so IaC misconfig and style hit
+  # before check-in, not just in CI. Conftest stays CI-only — it needs a
+  # `terraform plan`, which isn't available at commit time.
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.96.1
+    hooks:
+      - id: terraform_fmt
+      - id: terraform_validate
+      - id: terraform_tfsec
+
+  # ── DB migration safety (shift-left for schema changes) ───────────────────
+  # Runs the same gate as ci.yml's migration-safety job, locally, before
+  # commit. See docs/DATABASE-MIGRATIONS.md.
+  - repo: local
+    hooks:
+      - id: check-migrations
+        name: DB migration safety (expand/contract)
+        entry: python3 tools/check_migrations.py
+        language: system
+        pass_filenames: false
+        files: (migrations/|alembic/versions/|db/migrate/|prisma/migrations/)
+

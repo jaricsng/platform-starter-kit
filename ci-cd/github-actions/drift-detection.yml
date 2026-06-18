@@ -1,0 +1,100 @@
+name: Infrastructure Drift Detection
+
+# Stay-right governance: deployed infrastructure drifts from code over time
+# (a console hotfix, an out-of-band change, a manual scale). This workflow
+# runs `terraform plan` on a schedule against the real backend and opens a
+# GitHub issue when the plan is non-empty — i.e. when reality no longer
+# matches iac-terraform/. sync_check.py covers drift FROM the kit; this
+# covers drift FROM your own Terraform.
+#
+# To activate:
+#   1. Configure the same keyless cloud auth as ci.yml's terraform-plan job
+#      (Workload Identity / OIDC) + the remote state backend.
+#   2. Point `working-directory` at your environment(s).
+#   3. Remove the `if: false` line below.
+
+on:
+  schedule:
+    - cron: "0 7 * * *"   # daily at 07:00 UTC — adjust to your timezone
+  workflow_dispatch: {}    # allow manual runs
+
+permissions:
+  contents: read
+  issues: write            # to open/update a drift issue
+
+jobs:
+  detect-drift:
+    name: terraform plan (drift check)
+    runs-on: ubuntu-latest
+    if: false   # Enable: remove this line once cloud auth + backend are configured
+    defaults:
+      run:
+        # TODO: point at your Terraform root / environment directory
+        working-directory: iac-terraform/gcp-cloud-run
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9"
+
+      - name: Authenticate to cloud (Workload Identity — keyless)
+        # TODO: replace with your cloud provider's auth action (AWS/Azure/GCP).
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Terraform init
+        run: terraform init
+
+      - name: Terraform plan (detailed exit code)
+        id: plan
+        # -detailed-exitcode: 0 = no changes, 2 = drift detected, 1 = error.
+        run: |
+          set +e
+          terraform plan -detailed-exitcode -no-color -out=drift.tfplan \
+            -var="image_tag=current" -var="secret_key=placeholder" 2>&1 | tee plan.txt
+          echo "exitcode=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Report drift as a GitHub issue
+        if: steps.plan.outputs.exitcode == '2'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let plan = '(plan output unavailable)';
+            try { plan = fs.readFileSync('iac-terraform/gcp-cloud-run/plan.txt', 'utf8'); } catch (e) {}
+            const body = [
+              '`terraform plan` detected drift between deployed infrastructure and code.',
+              '',
+              'Reconcile by reviewing the plan and either applying it (code is source of truth)',
+              'or importing the out-of-band change. See operations/runbooks/ for context.',
+              '',
+              '```',
+              plan.slice(0, 60000),
+              '```',
+            ].join('\n');
+            const title = 'Infrastructure drift detected';
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'infra-drift',
+            });
+            if (existing.data.length) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: existing.data[0].number, body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title, body, labels: ['infra-drift'],
+              });
+            }
+
+      - name: Fail the run if drift was detected
+        if: steps.plan.outputs.exitcode == '2'
+        run: |
+          echo "::error::Infrastructure drift detected — see the opened issue."
+          exit 1
