@@ -1,6 +1,6 @@
 locals {
   name_prefix = "${var.app_name}-${var.environment}"
-  image        = "ghcr.io/${var.github_repository}/api:${var.image_tag}"
+  image       = "ghcr.io/${var.github_repository}/api:${var.image_tag}"
 
   labels = {
     app         = var.app_name
@@ -12,9 +12,9 @@ locals {
 
 # ── Cloud SQL (PostgreSQL 16) ──────────────────────────────────────────────────
 resource "google_sql_database_instance" "main" {
-  name             = "${local.name_prefix}-db"
-  database_version = "POSTGRES_16"
-  region           = var.region
+  name                = "${local.name_prefix}-db"
+  database_version    = "POSTGRES_16"
+  region              = var.region
   deletion_protection = var.environment == "production" ? true : false
 
   settings {
@@ -29,13 +29,13 @@ resource "google_sql_database_instance" "main" {
     }
 
     maintenance_window {
-      day  = 7  # Sunday
-      hour = 3  # 03:00 UTC — low traffic window
+      day  = 7 # Sunday
+      hour = 3 # 03:00 UTC — low traffic window
     }
 
     database_flags {
       name  = "log_min_duration_statement"
-      value = "1000"  # log queries taking > 1 s
+      value = "1000" # log queries taking > 1 s
     }
 
     user_labels = local.labels
@@ -205,7 +205,7 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "~> 5.0"
+      version = "~> 7.37"
     }
     random = {
       source  = "hashicorp/random"
