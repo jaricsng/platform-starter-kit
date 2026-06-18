@@ -11,6 +11,91 @@ change.
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-06-18
+
+Minor per this kit's own versioning policy: three new capability folders
+(`governance/`, `dev-experience/`, `operations/`), no breaking layout
+change. Two threads of work since 2.0.0 — a governance/policy-enforcement
+pass, and a platform-engineering pass closing the gap between "the kit
+describes the golden path" and "a developer can focus on app code and ship
+to production with confidence."
+
+### Added — developer experience & delivery confidence
+
+- **New capability folder: `dev-experience/`** — the paved inner loop. A
+  `Makefile` task interface (`make test`/`run`/`lint`/`fmt`/`scan`/`doctor`/
+  `migrations`/`obs-up`/`sync`) so local and CI run the same commands and a
+  developer never memorizes per-tool incantations; the kit-tool targets
+  work as-is, app targets carry a one-time TODO. Plus a `.devcontainer/`
+  (reproducible env), `.tool-versions` (asdf/mise pinning), `.env.example`
+  (documents every env var with no real secret), and `.editorconfig`.
+  `scaffold.py` copies these to the new repo's root.
+- **New capability folder: `operations/`** — the Day-2 procedures behind the
+  observability signals: `runbooks/rollback.md`, `runbooks/incident-response.md`,
+  `runbooks/postmortem-template.md`, and `SLOs.md` (the reliability targets
+  behind `recording_rules.yml`'s burn-rate alerts, and how error budget
+  gates risky deploys). Copied into scaffolded repos.
+- `observability/alertmanager.yml` + wiring — the SLO-burn alerts already
+  defined in `recording_rules.yml` had nowhere to go; Alertmanager now
+  routes `severity: critical` → PagerDuty and the rest → Slack, with an
+  inhibition rule. `prometheus.yml` gained the top-level `alerting:` block
+  and the compose overlay gained the service. Placeholder receiver URLs are
+  structurally valid so the stack still boots (re-verified end-to-end).
+- `tools/check_migrations.py` + `docs/DATABASE-MIGRATIONS.md` — a schema-
+  safety gate flagging backward-incompatible DDL (DROP COLUMN, SET NOT NULL,
+  renames, the Alembic equivalents) that breaks the old app version during
+  a rolling deploy, with an inline `migration-safety: ack` escape hatch for
+  deliberate contract-phase changes. Wired into `ci.yml` as the
+  `migration-safety` job; doc explains the expand/contract pattern.
+- `docs/FEATURE-FLAGS.md` — the deploy-≠-release pattern (OpenFeature,
+  vendor-neutral) that makes shipping to production low-risk and gives the
+  rollback runbook a "flag off" first option.
+
+### Added — governance & policy enforcement
+
+- **New capability folder: `governance/`** — `governance/policy-as-code/`
+  ships an OSS Conftest/OPA policy-as-code baseline
+  (`policy/terraform_guardrails.rego`) for `iac-terraform/gcp-cloud-run`,
+  the free starting point `docs/ENTERPRISE-TOOLING.md` previously pointed
+  at (Sentinel/OPA) without providing. Checks two config mistakes the
+  module's own variable defaults make easy to hit in production (a
+  staging-sized `db_tier`, `min_instances: 0` scale-to-zero), plus a
+  non-blocking `warn` on the module's intentional public-ingress IAM
+  grant. Includes hand-written plan-JSON fixtures
+  (`examples/passing-plan.json`/`failing-plan.json`) so the policy can be
+  exercised without `terraform` or real GCP credentials. `scaffold.py`
+  copies it in whenever `--cloud gcp` is used (new `--no-governance` to
+  opt out); `ci-cd/github-actions/ci.yml`'s `terraform-plan` job has a
+  commented `conftest test` step ready to uncomment.
+- `tools/doctor.py`: new "Catalog ownership" check — flags
+  `catalog-info.yaml`'s `owner:` field if it's still a `TODO-*`
+  placeholder, so an unresolved ownership record doesn't sit silently
+  forever.
+- `ci-cd/github-actions/ci.yml`: new `golden-path-check` job runs
+  `tools/doctor.py` on every push/PR (no-ops with a message if the repo
+  doesn't have it). Previously `doctor.py` only ran when someone
+  remembered to invoke it by hand — a repo could drift off the golden
+  path indefinitely between manual checks.
+- `tools/scaffold.py` now writes a generic `.github/CODEOWNERS` and
+  `.github/dependabot.yml` into every new repo (previously neither was
+  generated at all, despite the kit modeling both on itself). Both use a
+  `TODO-set-your-team-or-handle`-style placeholder, not this kit's own
+  `@jaricsng` — copying the kit's literal governance files verbatim would
+  have assigned code ownership of every scaffolded repo to this kit's
+  maintainer.
+- `docs/GETTING-STARTED.md`: new "11. Governance — branch protection &
+  policy enforcement" step with a `gh api` snippet for required status
+  checks + required reviewers — the CI gates above are unenforceable
+  until branch protection actually requires them, which nothing
+  previously told adopters to set up.
+
+### Changed
+
+- `docs/ENTERPRISE-TOOLING.md`'s Terraform-governance rows now point at
+  `governance/policy-as-code/` as the OSS baseline to extend (Sentinel
+  rules largely port from the same Rego logic) instead of implying
+  policy-as-code starts from zero at the enterprise tier.
+
 ## [2.0.0] - 2026-06-18
 
 Major per this kit's own versioning policy: includes a breaking layout

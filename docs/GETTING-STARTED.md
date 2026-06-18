@@ -71,13 +71,30 @@ flowchart TD
         i1 --> i2 --> i3
     end
 
-    iacStep --> done(["Push changes to your own project repo\n-- this kit stays as the upstream reference"])
+    iacStep --> opsStep
+
+    subgraph opsStep["Day 2 — Operations & Safe Delivery"]
+        op1["Set SLO targets + Alertmanager receivers"]
+        op2["Skim rollback / incident runbooks"]
+        op3["Adopt feature flags (deploy != release)"]
+        op1 --> op2 --> op3
+    end
+
+    opsStep --> govStep
+
+    subgraph govStep["Before relying on any gate above — Governance"]
+        g1["Fill CODEOWNERS owner placeholder"]
+        g2["Require status checks + reviewers on main"]
+        g1 --> g2
+    end
+
+    govStep --> done(["Push changes to your own project repo\n-- this kit stays as the upstream reference"])
 
     classDef terminal fill:#e6f4ea,stroke:#2e7d32,color:#1a1a1a,stroke-width:1px;
     classDef step fill:#ffffff,stroke:#4c8bf5,color:#0b1320,stroke-width:1px;
     classDef decision fill:#fff4e0,stroke:#b8860b,color:#1a1a1a,stroke-width:1px;
     class start,done terminal;
-    class t1,t2,t3,d1a,d1b,d1c,c1,c2,c3,o1,o2,o3,aspireStep,l1,l2,l3,s1,s2,i1,i2,i3 step;
+    class t1,t2,t3,d1a,d1b,d1c,c1,c2,c3,o1,o2,o3,aspireStep,l1,l2,l3,s1,s2,i1,i2,i3,op1,op2,op3,g1,g2 step;
     class aspireCheck decision;
 
     style tryit fill:#f5f8ff,stroke:#4c8bf5,color:#0b1320
@@ -87,6 +104,8 @@ flowchart TD
     style loadStep fill:#f5f8ff,stroke:#4c8bf5,color:#0b1320
     style secStep fill:#f5f8ff,stroke:#4c8bf5,color:#0b1320
     style iacStep fill:#f5f8ff,stroke:#4c8bf5,color:#0b1320
+    style opsStep fill:#f5f8ff,stroke:#4c8bf5,color:#0b1320
+    style govStep fill:#f5f8ff,stroke:#4c8bf5,color:#0b1320
 
     linkStyle default stroke:#333333,stroke-width:1.5px;
 ```
@@ -136,6 +155,13 @@ need to understand what changed.
 
 ## 2. Day 1 — code-quality baseline
 
+- `scaffold.py` also drops a `Makefile`, `.devcontainer/`, `.tool-versions`,
+  and `.env.example` (from `dev-experience/`) at your repo root. Run
+  `make help` to see the task interface — `make doctor`, `make migrations`,
+  `make obs-up`, and `make sync` work immediately; fill in the `setup`/
+  `test`/`lint`/`fmt` targets with your stack's commands once, and every
+  developer and CI job inherits them. `cp .env.example .env` and fill in
+  local values.
 - Copy `ci-cd/pre-commit/.pre-commit-config.yaml` to your repo root.
 - Copy `claude-commands/*.md` into your `.claude/commands/`.
 - Adjust the `files:` path filters in the pre-commit config to match your tree.
@@ -147,6 +173,11 @@ need to understand what changed.
 - Edit working directories and test commands to match your stack.
 - Create the GitHub secrets listed in [`docs/TODO.md`](TODO.md) for whichever
   deploy target you plan to activate.
+- `ci.yml` includes two safety gates that need no setup: `golden-path-check`
+  (runs `tools/doctor.py`) and `migration-safety` (runs
+  `tools/check_migrations.py` — see
+  [`docs/DATABASE-MIGRATIONS.md`](DATABASE-MIGRATIONS.md)). Both no-op
+  gracefully if the relevant files aren't present yet.
 
 ## 4. Week 1 — observability
 
@@ -161,6 +192,10 @@ docker compose -f <your-compose>.yml \
   `observability/prometheus.yml`'s scrape target.
 - Adjust the Grafana dashboard panel queries to your service's metric names
   if they differ from the OTel HTTP semantic conventions.
+- The overlay now includes **Alertmanager** — set real receiver values in
+  `observability/alertmanager.yml` (Slack webhook / PagerDuty key) when
+  you're ready to route the SLO-burn alerts somewhere. Define your actual
+  targets in [`operations/SLOs.md`](../operations/SLOs.md).
 
 ## 5. If using .NET / Aspire
 
@@ -190,12 +225,28 @@ docker compose -f <your-compose>.yml \
   module's own `README.md`).
 - `terraform init && terraform plan`.
 
-## 9. Push your changes
+## 9. Day 2 — operations & safe delivery
+
+Before you're routinely shipping to production, adopt the `operations/`
+folder (copied for you by `scaffold.py`) so on-call and releases aren't
+improvised under pressure:
+
+- Set your real SLO targets in [`operations/SLOs.md`](../operations/SLOs.md)
+  and confirm they match `observability/recording_rules.yml`.
+- Skim the runbooks now, not during an incident:
+  [`rollback.md`](../operations/runbooks/rollback.md),
+  [`incident-response.md`](../operations/runbooks/incident-response.md),
+  and the [`postmortem-template.md`](../operations/runbooks/postmortem-template.md).
+- Adopt feature flags ([`docs/FEATURE-FLAGS.md`](FEATURE-FLAGS.md)) to
+  decouple deploy from release — the highest-leverage way to make shipping
+  to production low-risk.
+
+## 10. Push your changes
 
 Push to your own project's repo. This starter-kit repo stays as the
 upstream reference to re-sync from later.
 
-## 10. Re-syncing later
+## 11. Re-syncing later
 
 If you used `tools/scaffold.py`, your repo has a `tools/sync_check.py`
 copy and a `PLATFORM-KIT.md` recording which kit commit you started from.
@@ -210,3 +261,42 @@ not a merge tool — decide per file whether to pull a change in by hand.
 If you adopted by hand instead of scaffolding, there's no recorded commit
 to diff against; re-reading `docs/ASSET-CATALOG.md`'s "Findings worth
 knowing about" section periodically is the manual equivalent.
+
+## 12. Governance — branch protection & policy enforcement
+
+Every gate above (`ci.yml`'s jobs, the `golden-path-check` and
+`migration-safety` jobs, the optional Conftest step in `terraform-plan` —
+see [`governance/policy-as-code/README.md`](../governance/policy-as-code/README.md))
+is only a *recommendation* until GitHub is told it's required. A direct
+push to `main`, or a PR merged before CI finishes, bypasses all of it.
+Turn the gates into actual policy:
+
+```bash
+gh api --method PUT repos/<owner>/<repo>/branches/main/protection \
+  --input - <<'JSON'
+{
+  "required_status_checks": {
+    "strict": true,
+    "contexts": [
+      "Backend — lint + test",
+      "Frontend — typecheck + lint + test",
+      "Security scan",
+      "Docker Compose build",
+      "Golden-path readiness (tools/doctor.py)",
+      "DB migration safety (expand/contract)"
+    ]
+  },
+  "enforce_admins": true,
+  "required_pull_request_reviews": { "required_approving_review_count": 1 },
+  "restrictions": null
+}
+JSON
+```
+
+The `contexts` list must match each job's `name:` field in `ci.yml`
+exactly — after your first CI run, copy the real names from the PR's
+"Checks" tab rather than trusting the list above if you've renamed any
+job. `.github/CODEOWNERS` (generated by `tools/scaffold.py`, or copy this
+kit's own) makes the required reviewer something specific instead of
+"anyone with write access" — fill in its `@TODO-set-your-team-or-handle`
+placeholder first, or the required review is satisfiable by nobody real.

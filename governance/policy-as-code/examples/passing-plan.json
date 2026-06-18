@@ -1,0 +1,40 @@
+{
+  "resource_changes": [
+    {
+      "address": "google_sql_database_instance.main",
+      "type": "google_sql_database_instance",
+      "change": {
+        "actions": ["create"],
+        "after": {
+          "settings": [
+            {
+              "tier": "db-n1-standard-1",
+              "user_labels": { "app": "my-service", "environment": "production" }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "address": "google_cloud_run_v2_service.api",
+      "type": "google_cloud_run_v2_service",
+      "change": {
+        "actions": ["create"],
+        "after": {
+          "labels": { "app": "my-service", "environment": "production" },
+          "template": [
+            { "scaling": [{ "min_instance_count": 1, "max_instance_count": 10 }] }
+          ]
+        }
+      }
+    },
+    {
+      "address": "google_cloud_run_v2_service_iam_member.public",
+      "type": "google_cloud_run_v2_service_iam_member",
+      "change": {
+        "actions": ["create"],
+        "after": { "member": "allUsers", "role": "roles/run.invoker" }
+      }
+    }
+  ]
+}

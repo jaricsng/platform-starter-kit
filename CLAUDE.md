@@ -24,9 +24,13 @@ mechanics of swapping any single piece for a different one, and
 `tools/scaffold.py` is the self-service mechanism that resolves most of
 those placeholders automatically; `tools/doctor.py` automates
 `docs/ARCHITECTURE-FIT.md`'s checklist; `tools/sync_check.py` reports what's
-changed upstream in the kit since a given repo was scaffolded. All three
-share `tools/_platform_kit.py` for placeholder substitution and the
-kit-file map — change that mapping in one place, not three. Keep
+changed upstream in the kit since a given repo was scaffolded;
+`tools/check_migrations.py` is the schema-safety gate
+(`docs/DATABASE-MIGRATIONS.md`). They share `tools/_platform_kit.py` for
+placeholder substitution and the kit-file map (`ALWAYS_FILES`/`ALWAYS_DIRS`/
+`OPTIONAL_DIRS`/...) — change that mapping in one place, not per tool. The
+`dev-experience/` folder is copied to a scaffolded repo's *root* (Makefile,
+devcontainer, .env.example); `operations/` holds Day-2 runbooks + SLOs. Keep
 `docs/TODO.md` in sync with `scaffold.py` — if a row is added there for
 something `scaffold.py` *could* substitute (an app name, a generic
 resource label), prefer teaching the scaffolder over leaving it manual.
@@ -96,7 +100,28 @@ pre-commit validate-config ci-cd/pre-commit/.pre-commit-config.yaml
 python3 tools/doctor.py examples/minimal-service   # should report only the known test gap
 rm -rf /tmp/scaffold-smoke
 python3 tools/scaffold.py --app-name smoke-test --output /tmp/scaffold-smoke --cloud gcp
-python3 /tmp/scaffold-smoke/tools/doctor.py /tmp/scaffold-smoke   # 3 expected gaps: no Dockerfile/tests/OTel yet — no false positives
+python3 /tmp/scaffold-smoke/tools/doctor.py /tmp/scaffold-smoke   # 3 expected FAILs (no Dockerfile/tests/OTel yet) + 1 WARN (catalog owner placeholder) — no false positives
 python3 tools/sync_check.py /tmp/scaffold-smoke --kit-path . --show-diffs   # sanity-check the diff output is readable
 rm -rf /tmp/scaffold-smoke
+
+# governance/policy-as-code — if you touched the Rego policy
+cd governance/policy-as-code
+conftest test --policy policy examples/passing-plan.json   # expect: exit 0, 1 warning
+conftest test --policy policy examples/failing-plan.json   # expect: exit 1, 2 failures
+cd ../..
+
+# dev-experience/ — if you touched the Makefile (tabs, not spaces!)
+make -f dev-experience/Makefile help   # must list targets, no "missing separator" error
+
+# tools/check_migrations.py — if you touched it, test both paths
+printf 'ALTER TABLE t DROP COLUMN c;\n' > /tmp/m.sql
+python3 tools/check_migrations.py /tmp/m.sql   # expect: exit 1, flags DROP COLUMN
+printf 'ALTER TABLE t ADD COLUMN c TEXT;\n' > /tmp/m.sql
+python3 tools/check_migrations.py /tmp/m.sql   # expect: exit 0
+rm -f /tmp/m.sql
 ```
+
+Note: the observability boot above now includes Alertmanager — if you touch
+`alertmanager.yml`/`prometheus.yml`'s `alerting:` block, keep the smoke
+boot in the validation list (Alertmanager crash-loops on a malformed
+receiver URL, so placeholder URLs must stay structurally valid).

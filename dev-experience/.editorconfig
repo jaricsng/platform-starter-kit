@@ -1,0 +1,23 @@
+# Editor-agnostic formatting baseline, so whitespace/encoding is consistent
+# regardless of who opens the file in what editor. Most editors honour this
+# natively or via a one-click plugin. Language formatters (ruff/prettier via
+# pre-commit) still own the deep rules — this just covers the basics they
+# don't, and keeps non-code files (YAML, JSON, Markdown) consistent too.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.{py,go}]
+indent_size = 4
+
+[Makefile]
+indent_style = tab
+
+[*.md]
+trim_trailing_whitespace = false

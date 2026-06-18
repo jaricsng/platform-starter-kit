@@ -172,6 +172,20 @@ def check_database(root: Path):
     return SKIP, "No recognized database client library detected — check manually if this service has a database"
 
 
+def check_catalog_governance(root: Path):
+    catalog = root / "catalog-info.yaml"
+    if not catalog.exists():
+        return SKIP, "No catalog-info.yaml found — run tools/scaffold.py, or copy this kit's own root catalog-info.yaml, if you use a Backstage-style catalog"
+    text = catalog.read_text(errors="ignore")
+    match = re.search(r"^\s*owner:\s*(\S+)", text, re.MULTILINE)
+    if not match:
+        return WARN, "catalog-info.yaml has no owner: field — the catalog can't attribute this service to a team without one"
+    owner = match.group(1).strip("\"'")
+    if owner.startswith("TODO"):
+        return WARN, f"catalog-info.yaml's owner is still the placeholder '{owner}' — resolve it to your actual Backstage group/team reference before this service ships to production"
+    return PASS, f"catalog-info.yaml owner resolved to '{owner}'"
+
+
 CHECKS = [
     ("Containerized", check_containerized),
     ("Health/readiness endpoints", check_health_endpoints),
@@ -180,6 +194,7 @@ CHECKS = [
     ("Kubernetes mismatch", check_kubernetes),
     ("Automated tests present", check_tests),
     ("Database engine", check_database),
+    ("Catalog ownership", check_catalog_governance),
 ]
 
 

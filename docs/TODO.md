@@ -19,11 +19,16 @@ of them.
 | `observability/prometheus.yml` | `job_name: app`, `targets: ["app:8000"]` | Your Compose service's actual name, if not `app` |
 | `observability/recording_rules.yml` | `job: app` labels, `http_server_duration_milliseconds` metric name | Your service's job label; confirm this matches your OTel SDK's semantic-convention version (see `docs/ASSET-CATALOG.md` "Findings worth knowing about") |
 | `observability/grafana/dashboards/starter-dashboard.json` | `job="app"` queries | Your service's job label |
+| `observability/alertmanager.yml` | Slack `api_url` + PagerDuty `routing_key` (structurally-valid placeholders) | Your real webhook URL / integration key — supply via secret, don't commit |
+| `Makefile` | `setup`/`test`/`lint`/`fmt` targets marked `# TODO` | Your stack's actual install/test/lint/format commands (filled in once, inherited by everyone + CI) |
+| `dev-experience/.tool-versions` → `.tool-versions` | `python`/`nodejs`/`terraform` versions | Match whatever `ci-cd/github-actions/ci.yml`'s `setup-*` steps pin |
 | `load-testing/k6/*.js`, `load-testing/locust/locustfile.py` | Worked-example endpoint paths/payloads (see each file's TODO header) | Your own API's routes and request bodies |
 | `iac-terraform/gcp-cloud-run/` | `terraform.tfvars`, GCS backend block | Your GCP project ID, image tag, GitHub repo, and a remote-state bucket (see the module's own `README.md`) |
 | `iac-terraform/gcp-cloud-run/variables.tf` | `app_name` (defaults to `"app"`) | Your application's actual name — prefixes every resource the module creates |
 | `security/manual-checks.sh` | `ENDPOINTS` configuration block at the top of the file | Your own auth/resource routes; adapt or delete the A04 status-state-machine checks if you don't have a similar workflow |
 | `catalog-info.yaml` | `owner: TODO-platform-team` | Your actual Backstage group reference (e.g. `group:default/platform-team`) — only relevant if you run Backstage |
+| `.github/CODEOWNERS` | `* @jaricsng` (this kit's own owner) | Your actual GitHub team or handle — required before `docs/GETTING-STARTED.md`'s branch-protection step is meaningful |
+| `governance/policy-as-code/policy/terraform_guardrails.rego` | Example Conftest/OPA rules, written against `iac-terraform/gcp-cloud-run`'s specific resources | Adapt the resource checks to your own requirements/cloud, or delete the folder — see `governance/policy-as-code/README.md` |
 
 ## Required CI secrets (only for deploy targets you activate)
 

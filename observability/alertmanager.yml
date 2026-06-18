@@ -1,0 +1,60 @@
+# Alertmanager routing for the SLO alerts already defined in
+# recording_rules.yml's `app-slo` group (ErrorBudgetBurnRateCritical,
+# ...High, LatencySLOBreach, ServiceUnreachable). Without this, those
+# alerts fire inside Prometheus and go nowhere — this file is what turns
+# a firing alert into a page or a Slack message.
+#
+# Routing policy here: `severity: critical` → page (PagerDuty), everything
+# else → Slack. Adjust the tree to your own on-call setup. The receivers
+# below use placeholder URLs/keys deliberately (see docs/TODO.md) — supply
+# them via environment substitution or a secret-mounted file, never commit
+# a real webhook/integration key.
+
+global:
+  resolve_timeout: 5m
+
+route:
+  # Default receiver for anything that doesn't match a child route.
+  receiver: slack-notifications
+  group_by: ["alertname", "severity"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    # Critical SLO burns / service-down → page immediately, no grouping delay.
+    - matchers:
+        - severity="critical"
+      receiver: pagerduty-oncall
+      group_wait: 0s
+      repeat_interval: 1h
+
+# Suppress the lower-severity "High" burn-rate warning while the "Critical"
+# one for the same service is already firing — one incident, not two pages.
+inhibit_rules:
+  - source_matchers:
+      - severity="critical"
+    target_matchers:
+      - severity="warning"
+    equal: ["alertname", "job"]
+
+receivers:
+  - name: slack-notifications
+    slack_configs:
+      # TODO: replace with your real Slack incoming-webhook URL. This
+      # placeholder is a structurally-valid URL so Alertmanager boots, but
+      # it points nowhere — delivery silently no-ops until you swap it.
+      - api_url: "https://hooks.slack.com/services/REPLACE/WITH/REAL"
+        channel: "#alerts"
+        title: '{{ .CommonAnnotations.summary }}'
+        text: >-
+          {{ range .Alerts }}{{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+
+  - name: pagerduty-oncall
+    pagerduty_configs:
+      # TODO: replace with your PagerDuty Events API v2 integration key.
+      - routing_key: "REPLACE_WITH_PAGERDUTY_ROUTING_KEY"
+        description: '{{ .CommonAnnotations.summary }}'
+        severity: critical
+        send_resolved: true

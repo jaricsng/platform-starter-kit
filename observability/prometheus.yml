@@ -8,6 +8,14 @@ global:
 rule_files:
   - /etc/prometheus/recording_rules.yml
 
+# Where to send firing alerts (the `app-slo` group in recording_rules.yml).
+# Must be top-level, same as rule_files. The `alertmanager` hostname
+# resolves on the shared Compose network (see docker-compose.observability.yml).
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
 scrape_configs:
   # TODO: rename "app" if you want a more specific job name, and update the
   # `app:8000` target to your service's hostname:port (matches whatever

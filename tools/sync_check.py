@@ -23,9 +23,12 @@ import sys
 from pathlib import Path
 
 from _platform_kit import (
+    ALWAYS_DIRS,
     ALWAYS_FILES,
     CLAUDE_COMMANDS_DST,
     CLAUDE_COMMANDS_SRC,
+    GOVERNANCE_DST,
+    GOVERNANCE_SRC,
     IAC_GCP_DST,
     IAC_GCP_SRC,
     OPTIONAL_DIRS,
@@ -67,7 +70,8 @@ def discover_file_pairs(target: Path):
         if (target / target_rel).exists():
             yield target_rel, kit_rel
 
-    for kit_dir, target_dir, _capability in OPTIONAL_DIRS:
+    dir_pairs = [(kd, td) for kd, td, _cap in OPTIONAL_DIRS] + list(ALWAYS_DIRS)
+    for kit_dir, target_dir in dir_pairs:
         root = target / target_dir
         if not root.is_dir():
             continue
@@ -87,6 +91,13 @@ def discover_file_pairs(target: Path):
             if f.is_file() and f.name != "terraform.tfvars.example":
                 rel = f.relative_to(iac_dir).as_posix()
                 yield f"{IAC_GCP_DST}/{rel}", f"{IAC_GCP_SRC}/{rel}"
+
+    gov_dir = target / GOVERNANCE_DST
+    if gov_dir.is_dir():
+        for f in gov_dir.rglob("*"):
+            if f.is_file():
+                rel = f.relative_to(gov_dir).as_posix()
+                yield f"{GOVERNANCE_DST}/{rel}", f"{GOVERNANCE_SRC}/{rel}"
 
 
 def check_file(target: Path, target_rel: str, kit_rel: str, kit_path: Path, sha: str, variants: dict):

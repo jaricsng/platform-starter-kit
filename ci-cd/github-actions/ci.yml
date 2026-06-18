@@ -167,6 +167,46 @@ jobs:
               2>/dev/null && echo "❌ Secret patterns found — see above" && exit 1 || \
             echo "✅ No secret patterns found in tracked files"
 
+  migration-safety:
+    name: DB migration safety (expand/contract)
+    runs-on: ubuntu-latest
+    # Flags backward-incompatible schema changes (DROP COLUMN, SET NOT NULL,
+    # renames) that break the old app version still running during a rolling
+    # deploy. No-ops if the repo has no migrations or no check script.
+    # See docs/DATABASE-MIGRATIONS.md.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check migrations
+        run: |
+          if [ -f tools/check_migrations.py ]; then
+            python3 tools/check_migrations.py
+          else
+            echo "tools/check_migrations.py not found — skipping. Re-scaffold with tools/scaffold.py to get it."
+          fi
+
+  golden-path-check:
+    name: Golden-path readiness (tools/doctor.py)
+    runs-on: ubuntu-latest
+    # Enforces docs/ARCHITECTURE-FIT.md's checklist on every push/PR, not
+    # just once at scaffold time — catches drift (secrets later committed,
+    # an unresolved catalog-info.yaml owner, tests deleted) before merge
+    # instead of relying on someone remembering to run it by hand.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run readiness check
+        run: |
+          if [ -f tools/doctor.py ]; then
+            python3 tools/doctor.py .
+          else
+            echo "tools/doctor.py not found — skipping. Re-scaffold with tools/scaffold.py to get it, or run docs/ARCHITECTURE-FIT.md's checklist by hand."
+          fi
+
   docker-build:
     name: Docker Compose build
     runs-on: ubuntu-latest
@@ -317,11 +357,21 @@ jobs:
       - name: Terraform plan
         id: plan
         run: |
-          terraform plan -no-color \
+          terraform plan -no-color -out=tfplan.binary \
             -var="image_tag=sha-${{ github.sha }}" \
             -var="secret_key=placeholder"
         working-directory: iac-terraform/gcp-cloud-run
         continue-on-error: true   # plan output is informational on PRs
+
+      # Policy-as-code gate (OSS baseline) — uncomment once you've adapted
+      # governance/policy-as-code/policy/*.rego to your own module/cloud.
+      # See governance/policy-as-code/README.md.
+      # - name: Conftest policy-as-code gate
+      #   run: |
+      #     terraform show -json tfplan.binary > tfplan.json
+      #     conftest test --policy ../../governance/policy-as-code/policy tfplan.json
+      #   working-directory: iac-terraform/gcp-cloud-run
+      #   continue-on-error: true   # flip to false once you trust your own rules
 
       - name: Post plan as PR comment
         if: always()

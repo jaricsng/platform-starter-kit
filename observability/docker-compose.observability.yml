@@ -49,6 +49,17 @@ services:
       - --web.enable-lifecycle
     depends_on:
       - blackbox-exporter
+      - alertmanager
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    profiles: [observability]
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./observability/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
 
   grafana:
     image: grafana/grafana:latest

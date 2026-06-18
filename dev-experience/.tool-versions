@@ -1,0 +1,12 @@
+# Pins the exact toolchain versions for this repo so every developer (and
+# CI) uses the same ones — read by asdf (https://asdf-vm.com) and mise
+# (https://mise.jdx.dev). Run `asdf install` / `mise install` to get them.
+#
+# Keep these in sync with the versions your CI uses (ci-cd/github-actions/
+# ci.yml's setup-python / setup-node / setup-terraform steps) — that's the
+# whole point: one source of truth for "what version of everything."
+#
+# Trim to only the languages this service actually uses.
+python 3.12.4
+nodejs 20.14.0
+terraform 1.9.5

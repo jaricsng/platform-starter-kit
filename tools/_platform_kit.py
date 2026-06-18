@@ -35,17 +35,35 @@ TEXT_SUFFIXES = {
 }
 
 # Flat files scaffold.py always copies 1:1 (kit-relative -> target-relative).
+# Note the dev-experience/* files land at the repo ROOT — that's where a
+# Makefile / .env.example / devcontainer have to be to do their job.
 ALWAYS_FILES = [
     ("ci-cd/github-actions/ci.yml", ".github/workflows/ci.yml"),
     ("ci-cd/github-actions/publish.yml", ".github/workflows/publish.yml"),
     ("ci-cd/pre-commit/.pre-commit-config.yaml", ".pre-commit-config.yaml"),
     ("tools/doctor.py", "tools/doctor.py"),
     ("tools/sync_check.py", "tools/sync_check.py"),
+    ("tools/check_migrations.py", "tools/check_migrations.py"),
     ("tools/_platform_kit.py", "tools/_platform_kit.py"),
+    # Paved inner loop (dev-experience/ -> repo root)
+    ("dev-experience/Makefile", "Makefile"),
+    ("dev-experience/.devcontainer/devcontainer.json", ".devcontainer/devcontainer.json"),
+    ("dev-experience/.tool-versions", ".tool-versions"),
+    ("dev-experience/.env.example", ".env.example"),
+    ("dev-experience/.editorconfig", ".editorconfig"),
+    # Docs that the copied operations/ runbooks + migration gate link to,
+    # so those links resolve inside a scaffolded repo too.
+    ("docs/DATABASE-MIGRATIONS.md", "docs/DATABASE-MIGRATIONS.md"),
+    ("docs/FEATURE-FLAGS.md", "docs/FEATURE-FLAGS.md"),
 ]
 
 # Subset of ALWAYS_FILES' targets that need the executable bit set.
-EXECUTABLE_TARGETS = {"tools/doctor.py", "tools/sync_check.py"}
+EXECUTABLE_TARGETS = {"tools/doctor.py", "tools/sync_check.py", "tools/check_migrations.py"}
+
+# Directories copied 1:1 unconditionally (kit-relative -> target-relative).
+ALWAYS_DIRS = [
+    ("operations", "operations"),
+]
 
 # Directories copied 1:1 when their capability flag is enabled.
 # capability key matches the scaffold.py argparse dest (without "no_").
@@ -62,6 +80,12 @@ CLAUDE_COMMANDS_DST = ".claude/commands"
 # iac-terraform/gcp-cloud-run/ -> iac-terraform/gcp-cloud-run/, only when cloud == gcp
 IAC_GCP_SRC = "iac-terraform/gcp-cloud-run"
 IAC_GCP_DST = "iac-terraform/gcp-cloud-run"
+
+# governance/policy-as-code/ -> governance/policy-as-code/, only when cloud
+# == gcp (the example Rego policy is written against the gcp-cloud-run
+# module's specific resource shapes) and --no-governance wasn't passed.
+GOVERNANCE_SRC = "governance/policy-as-code"
+GOVERNANCE_DST = "governance/policy-as-code"
 
 
 def slugify(raw: str) -> str:

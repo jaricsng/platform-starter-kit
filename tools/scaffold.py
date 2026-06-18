@@ -29,10 +29,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from _platform_kit import (
+    ALWAYS_DIRS,
     ALWAYS_FILES,
     CLAUDE_COMMANDS_DST,
     CLAUDE_COMMANDS_SRC,
     EXECUTABLE_TARGETS,
+    GOVERNANCE_DST,
+    GOVERNANCE_SRC,
     IAC_GCP_DST,
     IAC_GCP_SRC,
     KIT_ROOT,
@@ -82,6 +85,7 @@ changed upstream since you scaffolded.
   - load-testing: {not args.no_load_testing}
   - claude-commands: {not args.no_claude_commands}
   - iac-terraform (gcp-cloud-run): {args.cloud == "gcp"}
+  - governance/policy-as-code (example only, GCP-specific): {args.cloud == "gcp" and not args.no_governance}
 
 Re-run `python3 tools/doctor.py .` periodically as you add your actual
 application code — the gaps it reports now (no app code yet) are expected;
@@ -116,6 +120,41 @@ spec:
     (output / "catalog-info.yaml").write_text(content)
 
 
+def write_codeowners(output: Path):
+    content = """# Default owner for everything in this repo. GitHub uses this to
+# auto-request review on every PR opened against the branches it
+# protects — replace the placeholder below with your actual team or
+# handle. A CODEOWNERS file naming nobody real is the same as having
+# none, just quieter about it.
+* @TODO-set-your-team-or-handle
+"""
+    gh_dir = output / ".github"
+    gh_dir.mkdir(parents=True, exist_ok=True)
+    (gh_dir / "CODEOWNERS").write_text(content)
+
+
+def write_dependabot(output: Path, args):
+    content = """# Keep this updated as you add ecosystems — this only covers what
+# tools/scaffold.py copied in. Add "pip"/"npm"/"docker"/etc. entries
+# once you add your actual application code.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+"""
+    if args.cloud == "gcp":
+        content += """  - package-ecosystem: "terraform"
+    directory: "/iac-terraform/gcp-cloud-run"
+    schedule:
+      interval: "weekly"
+"""
+    gh_dir = output / ".github"
+    gh_dir.mkdir(parents=True, exist_ok=True)
+    (gh_dir / "dependabot.yml").write_text(content)
+
+
 def write_readme(output: Path, variants: dict, args):
     included = []
     if not args.no_security:
@@ -126,10 +165,16 @@ def write_readme(output: Path, variants: dict, args):
         included.append("- `load-testing/` — k6 + Locust scenarios")
     if args.cloud == "gcp":
         included.append(f"- `iac-terraform/gcp-cloud-run/` — parameterized Cloud Run module, `app_name` pre-set to `{variants['kebab']}`")
+        if not args.no_governance:
+            included.append("- `governance/policy-as-code/` — example Conftest/OPA policy-as-code guardrails for the Terraform module")
     if not args.no_claude_commands:
         included.append("- `.claude/commands/` — Claude Code review/fix commands")
     included.append("- `.github/workflows/`, `.pre-commit-config.yaml` — CI/CD pipeline shape + pre-commit security baseline")
+    included.append("- `Makefile`, `.devcontainer/`, `.tool-versions`, `.env.example` — paved inner loop (`make help` for the task list)")
+    included.append("- `operations/` — rollback / incident / postmortem runbooks + SLO definitions")
+    included.append("- `tools/check_migrations.py`, `docs/DATABASE-MIGRATIONS.md`, `docs/FEATURE-FLAGS.md` — schema-safety gate + safe-release patterns")
     included.append("- `catalog-info.yaml` — Backstage catalog registration (fill in the owner/project-slug TODOs)")
+    included.append("- `.github/CODEOWNERS`, `.github/dependabot.yml` — review ownership + dependency-update policy (fill in the CODEOWNERS TODO)")
 
     content = f"""# {variants["title"]}
 
@@ -146,10 +191,11 @@ only you have).
 ## Next steps
 
 1. Add your actual application code (this scaffold doesn't include one).
-2. `pre-commit install`
-3. Work through `TODO.md`.
-4. `python3 tools/doctor.py .` to confirm readiness as you go.
-5. `python3 tools/sync_check.py .` later, to see what's changed upstream.
+2. `cp .env.example .env` and fill in local values, then `make setup`.
+3. Fill in the `TODO` commands in the `Makefile` (`setup`/`test`/`lint`/`fmt`).
+4. Work through `TODO.md`.
+5. `make doctor` (readiness) and `make migrations` (schema safety) as you go.
+6. `make sync` later, to see what's changed upstream in the kit.
 """
     (output / "README.md").write_text(content)
 
@@ -170,6 +216,8 @@ TODO_ROWS = [
      "| `.github/workflows/publish.yml` | GCP deploy job's `if: false`, `deploy/gcp-deploy.sh` | Remove once Workload Identity Federation is configured; provide your own deploy script, or `terraform apply` directly |"),
     (lambda a: a.cloud == "gcp",
      "| `iac-terraform/gcp-cloud-run/` | `terraform.tfvars`, GCS backend block | Your GCP project ID and a remote-state bucket (`app_name` is already set) |"),
+    (lambda a: a.cloud == "gcp" and not a.no_governance,
+     "| `governance/policy-as-code/policy/terraform_guardrails.rego` | Example only | Adapt the resource checks to your own requirements, or delete the folder if you don't want a policy-as-code gate — see `governance/policy-as-code/README.md` |"),
     (lambda a: not a.no_security,
      "| `security/manual-checks.sh` | `ENDPOINTS` configuration block | Your own auth/resource routes |"),
     (lambda a: not a.no_observability,
@@ -178,6 +226,8 @@ TODO_ROWS = [
      "| `load-testing/k6/*.js`, `load-testing/locust/locustfile.py` | Worked-example endpoint paths/payloads | Your own API's routes and request bodies |"),
     (lambda a: True,
      "| `catalog-info.yaml` | `project-slug` annotation, `owner: TODO-team` | Your repo's slug and your actual Backstage team reference |"),
+    (lambda a: True,
+     "| `.github/CODEOWNERS` | `@TODO-set-your-team-or-handle` | Your actual GitHub team or handle |"),
 ]
 
 
@@ -241,6 +291,7 @@ def main():
     parser.add_argument("--no-security", action="store_true")
     parser.add_argument("--no-load-testing", action="store_true")
     parser.add_argument("--no-claude-commands", action="store_true")
+    parser.add_argument("--no-governance", action="store_true", help="skip governance/policy-as-code/ (only copied when --cloud gcp, since the example policy targets that module)")
     parser.add_argument("--telemetry", action="store_true", help="opt-in: record an anonymized capability-choice event (local file, or PLATFORM_KIT_TELEMETRY_URL if set)")
     parser.add_argument("--force", action="store_true", help="allow scaffolding into a non-empty directory")
     args = parser.parse_args()
@@ -260,6 +311,9 @@ def main():
         copy_and_substitute(KIT_ROOT / kit_rel, output / target_rel, variants)
         if target_rel in EXECUTABLE_TARGETS:
             (output / target_rel).chmod(0o755)
+
+    for kit_dir, target_dir in ALWAYS_DIRS:
+        copy_tree(KIT_ROOT / kit_dir, output / target_dir, variants)
 
     if not args.no_claude_commands:
         for src in (KIT_ROOT / CLAUDE_COMMANDS_SRC).glob("*.md"):
@@ -283,10 +337,14 @@ def main():
             f'image_tag  = "sha-REPLACE"\n'
             f'github_repository = "your-org/{variants["kebab"]}"\n'
         )
+        if not args.no_governance:
+            copy_tree(KIT_ROOT / GOVERNANCE_SRC, output / GOVERNANCE_DST, variants)
 
     sha = kit_commit_sha()
     write_manifest(output, kebab, args, sha)
     write_catalog_info(output, variants, args)
+    write_codeowners(output)
+    write_dependabot(output, args)
     write_readme(output, variants, args)
     write_todo(output, args)
 
