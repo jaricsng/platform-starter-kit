@@ -11,6 +11,11 @@ change.
 
 ## [Unreleased]
 
+## [2.1.4] - 2026-06-19
+
+Dependabot review fallout. Patch per the kit's versioning policy — no
+capability folder was added, moved, or removed.
+
 ### Fixed
 
 - `iac-terraform/gcp-cloud-run`: `google_cloud_run_v2_service` now sets
@@ -20,6 +25,16 @@ change.
   field to `true` for every environment — without the override, `terraform
   destroy`/replace on a staging Cloud Run service would fail until someone
   discovered and manually unprotected it.
+- `iac-terraform/gcp-cloud-run`: bumped the `hashicorp/google` provider
+  constraint from `~> 5.0` to `~> 7.37` (the change reviewed in Dependabot
+  PR #1, applied directly once CI caught that it had to land together with
+  the `deletion_protection` fix above — the field doesn't exist on the
+  pinned v5 provider).
+- `iac-terraform/gcp-cloud-run/main.tf`: re-ran `terraform fmt` against a
+  current Terraform release. `validate-kit.yml`'s `terraform-validate` job
+  pulls the latest CLI with no version pin, and a newer `fmt` produces
+  different comment-spacing/alignment output than whatever last formatted
+  this file — this was failing on `main` independently of the provider bump.
 
 ## [2.1.3] - 2026-06-18
 
