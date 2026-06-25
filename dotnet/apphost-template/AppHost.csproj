@@ -14,7 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.AppHost" Version="9.1.0" />
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="13.4.6" />
     <!-- TODO: add hosting packages for whatever resources you orchestrate,
          e.g. Aspire.Hosting.PostgreSQL, Aspire.Hosting.Redis. -->
     <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="9.1.0" />
